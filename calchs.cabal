@@ -1,0 +1,31 @@
+cabal-version:      2.4
+name:               calchs
+version:            0.0.0.1
+
+-- A short (one-line) description of the package.
+synopsis: Command line calculator tool.
+
+-- A longer description of the package.
+description: A simple command line calculator tool.
+
+-- The license under which the package is released.
+license: MIT
+author:             Daniel Barenholz
+maintainer:         hello@dbarenholz.com
+
+-- A copyright notice.
+-- copyright:
+-- category:
+
+executable calchs
+    main-is:          Main.hs
+
+    -- Modules included in this executable, other than Main.
+    other-modules:    Lexer, Parser, Evaluator
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:    base ^>=4.17.2.0
+    hs-source-dirs:   app, src
+    default-language: Haskell2010
+    ghc-options: -Wall
