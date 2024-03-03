@@ -3,28 +3,9 @@ module Lexer (lex) where
 import Prelude hiding (lex)
 import Data.Char (isDigit)
 
-data Literal 
-  = LInt Int
-  | LFloat Float
-  deriving (Show)
+import Types
 
-data BinOp 
-  = Add 
-  | Sub 
-  | Mul 
-  | Div
-  deriving (Show)
-
-data LR = L | R
-  deriving (Show)
-
-data Token 
-  = TLit Literal 
-  | TBinOp BinOp 
-  | TParen LR
-  deriving (Show)
-
-
+-- | Documentation here :^)
 lstAsZero :: String -> (String, String)
 lstAsZero s = 
   let
