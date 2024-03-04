@@ -1,5 +1,7 @@
 module Evaluator (eval) where
 
+import Numeric (showFFloat)
+
 import Types
 
 {--- public methods ---}
@@ -22,7 +24,7 @@ data Result
 -- | We define how to print the Result datatype, which really is just `show`.
 showResult :: Result -> String
 showResult (I i) = show i
-showResult (F f) = show f
+showResult (F f) = showFFloat Nothing f ""
 
 -- | given an expression, compute the result
 compute :: Expr -> Result
