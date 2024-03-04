@@ -1,7 +1,12 @@
-module Parser where
+module Parser(parse) where
 
 import Types
 
+
+{--- public methods ---}
+
+-- | The sole method we _really_ care about: parse.
+--   Given a list of tokens, parse it to an expression to evaluate.
 parse :: [Token] -> Expr 
 parse tokens = 
   let 
@@ -9,25 +14,27 @@ parse tokens =
   in
     case ts' of
       [] -> expr
-      _ -> error $ "parse error: remaining tokens? ->\ntokens: " ++ show ts' ++ "\nexpr: " ++ show expr
+      _  -> error $ "parse error: remaining tokens? ->\ntokens: " ++ show ts' ++ "\nexpr: " ++ show expr
 
-parseBlock :: [Token] -> (Expr, [Token])   -- parses ()
+
+{--- private methods ---}
+
+parseBlock :: [Token] -> (Expr, [Token])   -- parses (Expr)
+parseBlock ((TLit lit) : ts) = (ELit lit, ts)
 parseBlock ((TParen L) : ts) = 
   let
     (expr, ts') = parseAddSub ts
   in
     case ts' of
-      TParen R : ts'' -> (expr, ts'') 
-      _ -> error "parse error: mismatched parenthesis"
-parseBlock ((TLit lit) : ts) = (ELit lit, ts)
+      TParen R : ts'' -> (expr, ts'')
+      _ -> error "parse error: mismatched parenthesis?"
 parseBlock ((TBinOp Sub) : ts) = 
   let 
     (expr, ts') = parseBlock ts
   in
     (EUnaryOp Neg expr , ts')
-parseBlock _ = error "parse error: unknown symbol in parseBlock (EOF?)"
+parseBlock _ = error "parse error: unknown symbol in parseBlock (or EOF)?"
 
--- 1 - 2*2 - 3*3 - 4 - 5
 parseAddSubs :: Expr -> [Token] -> (Expr, [Token])
 parseAddSubs lhs ts =
   case ts of

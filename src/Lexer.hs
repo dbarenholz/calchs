@@ -5,7 +5,38 @@ import Data.Char (isDigit)
 
 import Types
 
--- | Documentation here :^)
+{--- public methods ---}
+
+-- | The sole method we _really_ care about: lex.
+--   It lexes the input string into a list of tokens, or an error message.
+lex :: String -> [Token]
+lex ('+' : cs)                         = (TBinOp Add :) (lex cs)
+lex ('-' : cs)                         = (TBinOp Sub :) (lex cs)
+lex ('*' : cs)                         = (TBinOp Mul :) (lex cs)
+lex ('/' : cs)                         = (TBinOp Div :) (lex cs)
+lex (' ' : cs)                         = lex cs                       -- 'ignore' spaces
+lex ('(' : cs)                         = (TParen L :) (lex cs)
+lex (')' : cs)                         = (TParen R :) (lex cs)
+lex (c   : cs) | isDigit c || c == '.' =
+  let 
+    (digits, rest) = lstAsZero (c : cs)
+  in 
+    case rest of
+      '.' : rest' -> 
+        let
+          (fDigits, fRest) = lstAsZero rest'
+          fVal             = read (digits ++ "." ++ fDigits) -- manually add the . in a float
+        in
+           (TLit (LFloat fVal) :) (lex fRest)
+      _ -> (TLit (LInt (read digits)) :) (lex rest)
+
+lex []                                = []
+lex (c : _)                           = error ("Lexer: Unrecognised Symbol: '" ++ [c] ++ "'") 
+
+
+{--- private methods ---}
+
+-- | When lexing a floaty value, we need to tell Haskell that ".5" is "0.5"
 lstAsZero :: String -> (String, String)
 lstAsZero s = 
   let
@@ -14,29 +45,3 @@ lstAsZero s =
   in
     (digits, rest)
 
--- | Documentation here :^)
-lex :: String -> Either String [Token]
-lex ('+' : cs)           = fmap (TBinOp Add :) (lex cs) -- fmap (\lst -> Add : lst) (lex cs)
-lex ('-' : cs)           = fmap (TBinOp Sub :) (lex cs)
-lex ('*' : cs)           = fmap (TBinOp Mul :) (lex cs)
-lex ('/' : cs)           = fmap (TBinOp Div :) (lex cs)
-lex (' ' : cs)           = lex cs
-lex ('(' : cs)           = fmap (TParen L :) (lex cs)
-lex (')' : cs)           = fmap (TParen R :) (lex cs)
--- this function uses 'guards':
---  `| isDigit c || c == '.'` -> specifies that c is either a digit or a period
-lex (c : cs) | isDigit c || c == '.' =
-  let 
-    (digits, rest) = lstAsZero (c : cs)
-  in 
-    case rest of
-      '.' : rest' ->
-        let 
-          (fDigits, fRest) = lstAsZero rest'
-          fVal = read (digits ++ "." ++ fDigits)
-        in
-          fmap (TLit (LFloat fVal) :) (lex fRest)
-      _ -> fmap (TLit (LInt (read digits)) :) (lex rest)
-
-lex []                   = Right []
-lex (c : _)             = Left ("Unrecognised Symbol: '" ++ [c] ++ "'") 
