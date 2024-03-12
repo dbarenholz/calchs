@@ -144,8 +144,9 @@ singleTest (input, expected) = do
     actual <- readProcess binPath [input] []
     -- obtain the result from comparing actual with expected, and "return" (`pure`) it.
   -}
-  actual <- readProcess "cabal" ["run", "calchs", "--", input] []
-  return $ if expected == actual then OK else FAIL ("Expected: '" ++ show expected ++ "'", "Actual: '" ++ show actual ++ "'")
+  actualWithNewline <- readProcess "cabal" ["run", "calchs", "--", input] []
+  let actual = init actualWithNewline
+  return $ if expected == actual then OK else FAIL ("Expected: '" ++ expected ++ "'", "Actual: '" ++ actual ++ "'")
 
 -- | Run a testsuite to a list of results
 testMain :: [MainTest] -> IO [TestResult]
@@ -163,7 +164,7 @@ green s = "\ESC[32m" ++ s ++ "\ESC[0m"
 -- | Helper method to show a particular test case.
 showTestCase :: TestCase -> String
 showTestCase (num, inp, OK)                      = green ("Test #" ++ show num ++ ": '" ++ inp ++ "' -> OK")
-showTestCase (num, inp, FAIL (expected, actual)) = red   ("Test #" ++ show num ++ ": '" ++ inp ++ "' -> FAIL\n" ++ expected ++ "\n" ++ actual)
+showTestCase (num, inp, FAIL (expected, actual)) = red   ("Test #" ++ show num ++ ": '" ++ inp ++ "' -> FAIL\n\t" ++ expected ++ "\n\t" ++ actual)
 
 test :: IO ()
 test = do
