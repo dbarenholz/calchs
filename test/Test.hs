@@ -2,6 +2,7 @@ module Main where
 
 import System.Process (readProcess)
 import System.Environment
+import Data.Char (toLower)
 
 import Types
 import Lexer (lex)
@@ -166,38 +167,51 @@ showTestCase :: TestCase -> String
 showTestCase (num, inp, OK)                      = green ("Test #" ++ show num ++ ": '" ++ inp ++ "' -> OK")
 showTestCase (num, inp, FAIL (expected, actual)) = red   ("Test #" ++ show num ++ ": '" ++ inp ++ "' -> FAIL\n\t" ++ expected ++ "\n\t" ++ actual)
 
+-- | Helper method: runs the main testsuite
+doSuiteMain :: IO ()
+doSuiteMain = do
+  putStrLn "Running testsuite: main"
+  let mainTests = fmap asMainTest testTable
+  mainResults <- testMain mainTests
+  let mainTestCases = zipWith3 (,,) [1..] (map fst mainTests) mainResults
+  mapM_ putStrLn (fmap showTestCase mainTestCases)
+
+doSuiteLexer :: IO ()
+doSuiteLexer = do
+  putStrLn "Lexer Tests:"
+  let lexTests = fmap asLexTest testTable
+  let lexResults = testLexer lexTests
+  let lexTestCases = fmap (\(num, (inp, _), res) -> (num, inp, res) :: TestCase) (zip3 [1..] lexTests lexResults)
+  mapM_ putStrLn (fmap showTestCase lexTestCases)
+
+doSuiteParser :: IO ()
+doSuiteParser = do
+  putStrLn "Parser Tests:"
+  let parseTests     = fmap asParseTest testTable 
+  let parseResults   = testParser parseTests
+  let parseTestCases = fmap ( \(num, (inp, _), res) -> (num, show inp, res) :: TestCase) (zip3 [1..] parseTests parseResults)
+  mapM_ putStrLn (fmap showTestCase parseTestCases)
+
+doSuiteEvaluator :: IO ()
+doSuiteEvaluator = do
+  putStrLn "Evaluator Tests:"
+  let evalTests     = fmap asEvalTest testTable 
+  let evalResults   = testEvaluator evalTests
+  let evalTestCases = fmap ( \(num, (inp, _), res) -> (num, show inp, res) :: TestCase) (zip3 [1..] evalTests evalResults)
+  mapM_ putStrLn (fmap showTestCase evalTestCases)
+
+testForArg :: String -> IO ()
+testForArg arg = case arg of
+  "lexer"     -> doSuiteLexer
+  "parser"    -> doSuiteParser
+  "evaluator" -> doSuiteEvaluator
+  a           -> error ("Unknown argument: '" ++ a ++ "'")
+
+
 test :: IO ()
 test = do
-  -- TODO: Allow for arguments to `cabal test` to specify what to test
   args <- getArgs
   case length args of
-    0 -> do
-      putStrLn "Running testsuite: main"
-      let mainTests = fmap asMainTest testTable
-      mainResults <- testMain mainTests
-      let mainTestCases = zipWith3 (,,) [1..] (map fst mainTests) mainResults
-      mapM_ putStrLn (fmap showTestCase mainTestCases)
-      -- no arguments, do main thing
-    1 -> do
-      error "yippie"
-    _ -> error "Not yet implement: providing multiple testsuites" -- more than 1 argument, what to do?
-
---   putStrLn "Lexer Tests:"
---   let lexTests     = fmap asLexTest testTable
---   let lexResults   = testLexer lexTests
---   let lexTestCases = fmap (\(num, (inp, _), res) -> (num, inp, res) :: TestCase) (zip3 [1..] lexTests lexResults)
---   mapM_ putStrLn (fmap showTestCase lexTestCases)
--- 
---   putStrLn "Parser Tests:"
---   let parseTests     = fmap asParseTest testTable 
---   let parseResults   = testParser parseTests
---   let parseTestCases = fmap ( \(num, (inp, _), res) -> (num, show inp, res) :: TestCase) (zip3 [1..] parseTests parseResults)
---   mapM_ putStrLn (fmap showTestCase parseTestCases)
---   
---   putStrLn "Evaluator Tests:"
---   let evalTests     = fmap asEvalTest testTable 
---   let evalResults   = testEvaluator evalTests
---   let evalTestCases = fmap ( \(num, (inp, _), res) -> (num, show inp, res) :: TestCase) (zip3 [1..] evalTests evalResults)
---   mapM_ putStrLn (fmap showTestCase evalTestCases)
-
-  putStrLn "Finished!"
+    0 -> doSuiteMain
+    1 -> testForArg (map toLower (head args))
+    _ -> error "TODO: Support multiple arguments"
