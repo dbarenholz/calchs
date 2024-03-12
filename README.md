@@ -31,10 +31,10 @@ Build the project using `cabal build`. Then, use `cabal list-bin` to find where 
 
 To test the project, you have 4 options:
 
-1. Test the entire application: `cabal test --show-details=always`. This will internally call `cabal run` on the project, and compare its output to the testcase.
-2. Test the lexer: `cabal test --test-show-details=always --test-options=lexer`. This internally directly tests the `lex` function. 
-3. Test the parser: `cabal test --test-show-details=always --test-options=parser`. This internally directly tests the `parse` function.
-4. Test the evaluator: `cabal test --test-show-details=always --test-options=evaluator`. This internally directly tests the `eval` function.
+1. Test the entire application: `cabal run test`
+2. Test the lexer: `cabal run test -- lexer`
+3. Test the parser: `cabal run test -- parser`
+4. Test the evaluator: `cabal run test -- evaluator`
 
 ## Contributing
 
