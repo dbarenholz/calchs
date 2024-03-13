@@ -1,10 +1,13 @@
 module Main where
 
-import System.Process (readProcess)
+import System.Process (readProcessWithExitCode)
+import System.Exit
 import System.Environment
 import Data.Char (toLower)
+import Data.List (isInfixOf)
 
 import Types
+import Utils
 import Lexer (lex)
 import Parser (parse)
 import Evaluator (eval)
@@ -18,8 +21,8 @@ main = test
 -- 2: resulting expression from parsing the list of tokens with Parser.parse
 -- 3: result after evaluating the parsed expression with Evaluator.eval
 type TableEntry = (String, [Token], Expr, String)
-testTable :: [TableEntry]
-testTable = [
+goodEntries :: [TableEntry]
+goodEntries = [
    -- Literal
    ("1", [TLit (LInt 1)], ELit (LInt 1), "1")
   ,("1.1", [TLit (LFloat 1.1)], ELit (LFloat 1.1), "1.1")
@@ -30,7 +33,7 @@ testTable = [
    -- Binary Operator
   ,("1+1", [TLit (LInt 1), TBinOp Add, TLit (LInt 1)], EBinOp (Add) (ELit (LInt 1)) (ELit (LInt 1)), "2")
   ,("1-1", [TLit (LInt 1), TBinOp Sub, TLit (LInt 1)], EBinOp (Sub) (ELit (LInt 1)) (ELit (LInt 1)), "0")
-  ,("1/1", [TLit (LInt 1), TBinOp Div, TLit (LInt 1)], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1")
+  ,("1/1", [TLit (LInt 1), TBinOp Div, TLit (LInt 1)], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1.0") -- no integer division
   ,("1*1", [TLit (LInt 1), TBinOp Mul, TLit (LInt 1)], EBinOp (Mul) (ELit (LInt 1)) (ELit (LInt 1)), "1")
    -- Parens around literals
   ,("(1)", [TParen L, TLit (LInt 1), TParen R], ELit (LInt 1), "1")
@@ -38,16 +41,15 @@ testTable = [
   ,("(.1)", [TParen L, TLit (LFloat 0.1), TParen R], ELit (LFloat 0.1), "0.1")
    -- Parens around unary operators
   ,("(-1)", [TParen L, TBinOp Sub, TLit (LInt 1), TParen R], EUnaryOp (Neg) (ELit (LInt 1)), "-1")
-   -- THIS IS A BUG IN THE PROGRAM,("(-.1)", [TParen L, TBinOp Sub, TLit (LFloat 0.1), TParen R], EUnaryOp (Neg) (ELit (LFloat 0.1)), "-0.1")
    -- Parens around binary operators
   ,("(1+1)", [TParen L, TLit (LInt 1), TBinOp Add, TLit (LInt 1), TParen R], EBinOp (Add) (ELit (LInt 1)) (ELit (LInt 1)), "2")
   ,("(1-1)", [TParen L, TLit (LInt 1), TBinOp Sub, TLit (LInt 1), TParen R], EBinOp (Sub) (ELit (LInt 1)) (ELit (LInt 1)), "0")
-  ,("(1/1)", [TParen L, TLit (LInt 1), TBinOp Div, TLit (LInt 1), TParen R], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1")
+  ,("(1/1)", [TParen L, TLit (LInt 1), TBinOp Div, TLit (LInt 1), TParen R], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1.0") -- no integer division
   ,("(1*1)", [TParen L, TLit (LInt 1), TBinOp Mul, TLit (LInt 1), TParen R], EBinOp (Mul) (ELit (LInt 1)) (ELit (LInt 1)), "1")
    -- Combining parens of literals with operators
   ,("(1)+(1)", [TParen L, TLit (LInt 1), TParen R, TBinOp Add, TParen L, TLit (LInt 1), TParen R], EBinOp (Add) (ELit (LInt 1)) (ELit (LInt 1)), "2")
   ,("(1)-(1)", [TParen L, TLit (LInt 1), TParen R, TBinOp Sub, TParen L, TLit (LInt 1), TParen R], EBinOp (Sub) (ELit (LInt 1)) (ELit (LInt 1)), "0")
-  ,("(1)/(1)", [TParen L, TLit (LInt 1), TParen R, TBinOp Div, TParen L, TLit (LInt 1), TParen R], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1")
+  ,("(1)/(1)", [TParen L, TLit (LInt 1), TParen R, TBinOp Div, TParen L, TLit (LInt 1), TParen R], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1.0") -- no integer division
   ,("(1)*(1)", [TParen L, TLit (LInt 1), TParen R, TBinOp Mul, TParen L, TLit (LInt 1), TParen R], EBinOp (Mul) (ELit (LInt 1)) (ELit (LInt 1)), "1")
    -- Whitespace: all above tests with arbitrary spaces and tabs added (all fields except input are identical)
   ,(" 1", [TLit (LInt 1)], ELit (LInt 1), "1")
@@ -57,21 +59,69 @@ testTable = [
   ,("   -.1", [TBinOp Sub, TLit (LFloat 0.1)], EUnaryOp (Neg) (ELit (LFloat 0.1)), "-0.1")
   ,("1 + 1", [TLit (LInt 1), TBinOp Add, TLit (LInt 1)], EBinOp (Add) (ELit (LInt 1)) (ELit (LInt 1)), "2")
   ,("1 -1", [TLit (LInt 1), TBinOp Sub, TLit (LInt 1)], EBinOp (Sub) (ELit (LInt 1)) (ELit (LInt 1)), "0")
-  ,("1/ 1", [TLit (LInt 1), TBinOp Div, TLit (LInt 1)], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1")
+  ,("1/ 1", [TLit (LInt 1), TBinOp Div, TLit (LInt 1)], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1.0") -- no integer division
   ,("1  *       1", [TLit (LInt 1), TBinOp Mul, TLit (LInt 1)], EBinOp (Mul) (ELit (LInt 1)) (ELit (LInt 1)), "1")
   ,("(  1)", [TParen L, TLit (LInt 1), TParen R], ELit (LInt 1), "1")
   ,("(1.1 )", [TParen L, TLit (LFloat 1.1), TParen R], ELit (LFloat 1.1), "1.1")
   ,(" ( .1)", [TParen L, TLit (LFloat 0.1), TParen R], ELit (LFloat 0.1), "0.1")
   ,(" ( - 1 ) ", [TParen L, TBinOp Sub, TLit (LInt 1), TParen R], EUnaryOp (Neg) (ELit (LInt 1)), "-1")
-  -- THIS IS A BUG IN THE PROGRAM ,(" ( - . 1 ) ", [TParen L, TBinOp Sub, TLit (LFloat 0.1), TParen R], EUnaryOp (Neg) (ELit (LFloat 0.1)), "-0.1")
   ,("(1 +       1)", [TParen L, TLit (LInt 1), TBinOp Add, TLit (LInt 1), TParen R], EBinOp (Add) (ELit (LInt 1)) (ELit (LInt 1)), "2")
   ,("(1-1         )", [TParen L, TLit (LInt 1), TBinOp Sub, TLit (LInt 1), TParen R], EBinOp (Sub) (ELit (LInt 1)) (ELit (LInt 1)), "0")
-  ,("(  1       /1)", [TParen L, TLit (LInt 1), TBinOp Div, TLit (LInt 1), TParen R], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1")
+  ,("(  1       /1)", [TParen L, TLit (LInt 1), TBinOp Div, TLit (LInt 1), TParen R], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1.0") -- no integer division
   ,("(1  *1)", [TParen L, TLit (LInt 1), TBinOp Mul, TLit (LInt 1), TParen R], EBinOp (Mul) (ELit (LInt 1)) (ELit (LInt 1)), "1")
   ,("(1) +(1)", [TParen L, TLit (LInt 1), TParen R, TBinOp Add, TParen L, TLit (LInt 1), TParen R], EBinOp (Add) (ELit (LInt 1)) (ELit (LInt 1)), "2")
   ,("(  1 )-(1)", [TParen L, TLit (LInt 1), TParen R, TBinOp Sub, TParen L, TLit (LInt 1), TParen R], EBinOp (Sub) (ELit (LInt 1)) (ELit (LInt 1)), "0")
-  ,("   ( 1)/(1)", [TParen L, TLit (LInt 1), TParen R, TBinOp Div, TParen L, TLit (LInt 1), TParen R], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1")
+  ,("   ( 1)/(1)", [TParen L, TLit (LInt 1), TParen R, TBinOp Div, TParen L, TLit (LInt 1), TParen R], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1.0") -- no integer division
   ,("(1)*( 1 ) ", [TParen L, TLit (LInt 1), TParen R, TBinOp Mul, TParen L, TLit (LInt 1), TParen R], EBinOp (Mul) (ELit (LInt 1)) (ELit (LInt 1)), "1")
+  ]
+
+-- | A way to test for bad flows
+badEntries :: [TableEntry]
+badEntries = [
+  -- Parse Error: remaining tokens
+  -- This error gets thrown when the parser thinks it's done, but there's still input to consume.
+   ("1 1",     [TLit (LInt 1), TLit (LInt 1)],                     undefined, "remaining tokens")
+  ,("1.1 1",   [TLit (LFloat 1.1), TLit (LInt 1)],                 undefined, "remaining tokens")
+  ,(".1 .1",   [TLit (LFloat 0.1), TLit (LFloat 0.1)],             undefined, "remaining tokens")
+  ,(". 1.1",   [TLit (LFloat 0.0), TLit (LFloat 1.1)],             undefined, "remaining tokens")
+  ,(". 1",     [TLit (LFloat 0.0), TLit (LInt 1)],                 undefined, "remaining tokens")
+  ,("- 1 1",   [TBinOp Sub, TLit (LInt 1), TLit (LInt 1)],         undefined, "remaining tokens")
+  ,("- 1.1 1", [TBinOp Sub, TLit (LFloat 1.1), TLit (LInt 1)],     undefined, "remaining tokens")
+  ,("- .1 .1", [TBinOp Sub, TLit (LFloat 0.1), TLit (LFloat 0.1)], undefined, "remaining tokens")
+  ,("- . 1.1", [TBinOp Sub, TLit (LFloat 0.0), TLit (LFloat 1.1)], undefined, "remaining tokens")
+  ,("- . 1",   [TBinOp Sub, TLit (LFloat 0.0), TLit (LInt 1)],     undefined, "remaining tokens")
+  
+  ,("(1) 1",     [TParen L, TLit (LInt 1), TParen R, TLit (LInt 1)],                     undefined, "remaining tokens")
+  ,("(1.1) 1",   [TParen L, TLit (LFloat 1.1), TParen R, TLit (LInt 1)],                 undefined, "remaining tokens")
+  ,("(.1) .1",   [TParen L, TLit (LFloat 0.1), TParen R, TLit (LFloat 0.1)],             undefined, "remaining tokens")
+  ,("(.) 1.1",   [TParen L, TLit (LFloat 0.0), TParen R, TLit (LFloat 1.1)],             undefined, "remaining tokens")
+  ,("(.) 1",     [TParen L, TLit (LFloat 0.0), TParen R, TLit (LInt 1)],                 undefined, "remaining tokens")
+  ,("- (1) 1",   [TBinOp Sub, TParen L, TLit (LInt 1), TParen R, TLit (LInt 1)],         undefined, "remaining tokens")
+  ,("- (1.1) 1", [TBinOp Sub, TParen L, TLit (LFloat 1.1), TParen R, TLit (LInt 1)],     undefined, "remaining tokens")
+  ,("- (.1) .1", [TBinOp Sub, TParen L, TLit (LFloat 0.1), TParen R, TLit (LFloat 0.1)], undefined, "remaining tokens")
+  ,("- (.) 1.1", [TBinOp Sub, TParen L, TLit (LFloat 0.0), TParen R, TLit (LFloat 1.1)], undefined, "remaining tokens")
+  ,("- (.) 1",   [TBinOp Sub, TParen L, TLit (LFloat 0.0), TParen R, TLit (LInt 1)],     undefined, "remaining tokens")
+  
+  -- Parse Error: mismatched parenthesis
+  -- This error gets thrown when the parser is parsing a (block), but _something_ goes wrong.
+  ,("(1 1)",     [TParen L, TLit (LInt 1), TLit (LInt 1), TParen R],                     undefined, "mismatched parenthesis")
+  ,("(1.1 1)",   [TParen L, TLit (LFloat 1.1), TLit (LInt 1), TParen R],                 undefined, "mismatched parenthesis")
+  ,("(.1 .1)",   [TParen L, TLit (LFloat 0.1), TLit (LFloat 0.1), TParen R],             undefined, "mismatched parenthesis")
+  ,("(. 1.1)",   [TParen L, TLit (LFloat 0.0), TLit (LFloat 1.1), TParen R],             undefined, "mismatched parenthesis")
+  ,("(. 1)",     [TParen L, TLit (LFloat 0.0), TLit (LInt 1), TParen R],                 undefined, "mismatched parenthesis")
+  ,("(- 1 1)",   [TParen L, TBinOp Sub, TLit (LInt 1), TLit (LInt 1), TParen R],         undefined, "mismatched parenthesis")
+  ,("(- 1.1 1)", [TParen L, TBinOp Sub, TLit (LFloat 1.1), TLit (LInt 1), TParen R],     undefined, "mismatched parenthesis")
+  ,("(- .1 .1)", [TParen L, TBinOp Sub, TLit (LFloat 0.1), TLit (LFloat 0.1), TParen R], undefined, "mismatched parenthesis")
+  ,("(- . 1.1)", [TParen L, TBinOp Sub, TLit (LFloat 0.0), TLit (LFloat 1.1), TParen R], undefined, "mismatched parenthesis")
+  ,("(- . 1)",   [TParen L, TBinOp Sub, TLit (LFloat 0.0), TLit (LInt 1), TParen R],     undefined, "mismatched parenthesis")
+
+  -- Parse Error: unknown symbol or EOF
+  -- This gets thrown when we're parsing, but the input unexpectedly stops.
+  -- It also gets thrown when parsing a block, and something happens we don't expect.
+  ,("",  [],         undefined, "EOF")
+  ,(" ", [],         undefined, "EOF")
+  ,("(", [TParen L], undefined, "EOF")
+  ,(")", [TParen R], undefined, "unknown symbol")
   ]
 
 type LexTest   = (String,  [Token])
@@ -136,8 +186,23 @@ testEvaluator ( (input, expected) : ts) =
     res : testEvaluator ts
 
 -- | Run a single testcase for the entire application
+-- Handles expected successes and failures differently.
 singleTest :: MainTest -> IO TestResult
 singleTest (input, expected) = do
+  -- Extract exit code, stdout, stderr
+  (exitCode, stdout, stderr) <- readProcessWithExitCode "cabal" ["run", "calchs", "--", input] []
+
+  case exitCode of
+    -- For happy flows: check expected with actual for strict equality
+    ExitSuccess   -> do
+      let actual = init stdout
+      return $ if expected == actual then OK else FAIL ("Expected: '" ++ expected ++ "'", "Actual: '" ++ actual ++ "'")
+    -- For bad flows: check expected (error type) to contain actual error message
+    ExitFailure _ -> do
+      let actual = init stderr
+      -- To make things explicit
+      return $ if isInfixOf expected stderr then OK else FAIL ("Expected error: '" ++ expected ++ "'"  , "Actual error: '" ++ actual ++ "'")
+
   {- TODO: use binary of the built project as opposed to running cabal on everything
     -- get path of binary
     binPath <- readProcess "cabal" ["list-bin", "calchs"] []
@@ -145,22 +210,11 @@ singleTest (input, expected) = do
     actual <- readProcess binPath [input] []
     -- obtain the result from comparing actual with expected, and "return" (`pure`) it.
   -}
-  actualWithNewline <- readProcess "cabal" ["run", "calchs", "--", input] []
-  let actual = init actualWithNewline
-  return $ if expected == actual then OK else FAIL ("Expected: '" ++ expected ++ "'", "Actual: '" ++ actual ++ "'")
 
 -- | Run a testsuite to a list of results
 testMain :: [MainTest] -> IO [TestResult]
 testMain [] = return [OK]
 testMain testcases = mapM singleTest testcases
-
--- | Helper method to print a particular string as red text to the terminal.
-red :: String -> String
-red s = "\ESC[31m" ++ s ++ "\ESC[0m"
-
--- | Helper method to print a particular string as green text to the terminal.
-green :: String -> String
-green s = "\ESC[32m" ++ s ++ "\ESC[0m"
 
 -- | Helper method to show a particular test case.
 showTestCase :: TestCase -> String
@@ -171,7 +225,7 @@ showTestCase (num, inp, FAIL (expected, actual)) = red   ("Test #" ++ show num +
 doSuiteMain :: IO ()
 doSuiteMain = do
   putStrLn "Running testsuite: main"
-  let mainTests = fmap asMainTest testTable
+  let mainTests = fmap asMainTest (goodEntries ++ badEntries)
   mainResults <- testMain mainTests
   let mainTestCases = zipWith3 (,,) [1..] (map fst mainTests) mainResults
   mapM_ putStrLn (fmap showTestCase mainTestCases)
@@ -179,7 +233,7 @@ doSuiteMain = do
 doSuiteLexer :: IO ()
 doSuiteLexer = do
   putStrLn "Lexer Tests:"
-  let lexTests = fmap asLexTest testTable
+  let lexTests = fmap asLexTest goodEntries
   let lexResults = testLexer lexTests
   let lexTestCases = fmap (\(num, (inp, _), res) -> (num, inp, res) :: TestCase) (zip3 [1..] lexTests lexResults)
   mapM_ putStrLn (fmap showTestCase lexTestCases)
@@ -187,7 +241,7 @@ doSuiteLexer = do
 doSuiteParser :: IO ()
 doSuiteParser = do
   putStrLn "Parser Tests:"
-  let parseTests     = fmap asParseTest testTable 
+  let parseTests     = fmap asParseTest goodEntries
   let parseResults   = testParser parseTests
   let parseTestCases = fmap ( \(num, (inp, _), res) -> (num, show inp, res) :: TestCase) (zip3 [1..] parseTests parseResults)
   mapM_ putStrLn (fmap showTestCase parseTestCases)
@@ -195,7 +249,7 @@ doSuiteParser = do
 doSuiteEvaluator :: IO ()
 doSuiteEvaluator = do
   putStrLn "Evaluator Tests:"
-  let evalTests     = fmap asEvalTest testTable 
+  let evalTests     = fmap asEvalTest goodEntries 
   let evalResults   = testEvaluator evalTests
   let evalTestCases = fmap ( \(num, (inp, _), res) -> (num, show inp, res) :: TestCase) (zip3 [1..] evalTests evalResults)
   mapM_ putStrLn (fmap showTestCase evalTestCases)
