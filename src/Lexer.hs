@@ -4,6 +4,7 @@ import Prelude hiding (lex)
 import Data.Char (isDigit)
 
 import Types
+import Utils
 
 {--- public methods ---}
 
@@ -31,7 +32,7 @@ lex (c   : cs) | isDigit c || c == '.' =
       _ -> (TLit (LInt (read digits)) :) (lex rest)
 
 lex []                                = []
-lex (c : _)                           = error ("Lexer: Unrecognised Symbol: '" ++ [c] ++ "'") 
+lex (c : _)                           = error $ red $ ("Lexer: Unrecognised Symbol: '" ++ [c] ++ "'") 
 
 
 {--- private methods ---}

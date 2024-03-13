@@ -1,7 +1,7 @@
 module Parser(parse) where
 
 import Types
-
+import Utils
 
 {--- public methods ---}
 
@@ -14,7 +14,7 @@ parse tokens =
   in
     case ts' of
       [] -> expr
-      _  -> error $ "parse error: remaining tokens? ->\ntokens: " ++ show ts' ++ "\nexpr: " ++ show expr
+      _  -> error $ red $ "parse error: remaining tokens? ->\ntokens: " ++ show ts' ++ "\nexpr: " ++ show expr
 
 
 {--- private methods ---}
@@ -27,13 +27,13 @@ parseBlock ((TParen L) : ts) =
   in
     case ts' of
       TParen R : ts'' -> (expr, ts'')
-      _ -> error "parse error: mismatched parenthesis?"
+      _ -> error $ red $ "parse error: mismatched parenthesis?"
 parseBlock ((TBinOp Sub) : ts) = 
   let 
     (expr, ts') = parseBlock ts
   in
     (EUnaryOp Neg expr , ts')
-parseBlock _ = error "parse error: unknown symbol in parseBlock (or EOF)?"
+parseBlock _ = error $ red $ "parse error: unknown symbol in parseBlock (or EOF)"
 
 parseAddSubs :: Expr -> [Token] -> (Expr, [Token])
 parseAddSubs lhs ts =
