@@ -35,4 +35,5 @@ test-suite test
   build-depends:
     base,
     process,
+    random,
     calchs
