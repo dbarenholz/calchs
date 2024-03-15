@@ -14,7 +14,7 @@ common commonOptions
 
 library
   import:           commonOptions
-  exposed-modules:  Lexer, Parser, Evaluator, Types, Utils
+  exposed-modules:  Calc.Lexer, Calc.Parser, Calc.Evaluator, Calc.Types, Calc.Utils, Calc
   hs-source-dirs:   src
   build-depends:
     base ^>= 4.17.2.0
@@ -34,5 +34,5 @@ test-suite test
   hs-source-dirs:   test
   build-depends:
     base,
-    process ^>= 1.6.18.0, 
+    process,
     calchs

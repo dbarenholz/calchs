@@ -1,4 +1,4 @@
-module Types where
+module Calc.Types where
 
 -- | There are 2 literals we support
 data Literal 

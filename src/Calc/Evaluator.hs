@@ -1,8 +1,8 @@
-module Evaluator (eval) where
+module Calc.Evaluator (eval) where
 
 import Numeric (showFFloat)
 
-import Types
+import Calc.Types
 
 {--- public methods ---}
 
@@ -13,13 +13,10 @@ eval e = showResult $ compute e
 
 {--- private methods ---}
 
--- | Haskell has no union types.
---   We define a "Result" datatype, that has two fields:
---     I Int   -> construct a result as I from an Int
---     F Float -> construct a result as F from a Float
+-- | A result (from evaluating an expression) can be 2 things
 data Result 
-  = I Int 
-  | F Float
+  = I Int                         -- An integer value
+  | F Float                       -- A floaty value
 
 -- | We define how to print the Result datatype, which really is just `show`.
 showResult :: Result -> String

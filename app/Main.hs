@@ -1,17 +1,13 @@
 module Main where
 
-import System.Environment
+import System.Environment (getArgs)
 
-import Lexer (lex)
-import Parser (parse)
-import Evaluator (eval)
+import Calc (compute)
 
+-- | Main function. Parsers arguments, then computes the result and prints it.
 main :: IO ()
 main = do
-  args   <- getArgs
-  arg    <- return (unwords args)
-  tokens <- return (Lexer.lex arg)
-  expr   <- return (Parser.parse tokens)
-  res    <- return (Evaluator.eval expr)
-  putStrLn res
-
+  args      <- getArgs
+  let arg    = unwords args
+  let result = compute arg
+  putStrLn result

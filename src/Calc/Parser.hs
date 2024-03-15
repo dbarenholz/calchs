@@ -1,7 +1,7 @@
-module Parser(parse) where
+module Calc.Parser(parse) where
 
-import Types
-import Utils
+import Calc.Types
+import Calc.Utils
 
 {--- public methods ---}
 

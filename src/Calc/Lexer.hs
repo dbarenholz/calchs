@@ -1,10 +1,10 @@
-module Lexer (lex) where
+module Calc.Lexer (lex) where
 
 import Prelude hiding (lex)
 import Data.Char (isDigit)
 
-import Types
-import Utils
+import Calc.Types
+import Calc.Utils
 
 {--- public methods ---}
 
