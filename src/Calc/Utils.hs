@@ -23,7 +23,7 @@ binopPrint :: BinOp -> String
 binopPrint (Add) = "+"
 binopPrint (Sub) = "-"
 binopPrint (Mul) = "*"
-binopPrint (Div) = "/" 
+binopPrint (Div) = "/"
 
 unaryopPrint :: UnaryOp -> String
 unaryopPrint (Neg) = "-"

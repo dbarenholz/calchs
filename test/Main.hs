@@ -1,8 +1,10 @@
 module Main where
 
 import System.Environment (getArgs)
-import System.Random
+import System.Random (RandomGen, mkStdGen, split, uniform, uniformR)
+import System.Random.Stateful (globalStdGen, uniformM)
 import Data.List (isInfixOf, unfoldr)
+import Data.Char (isDigit)
 
 import Calc (compute)
 import Calc.Types
@@ -15,91 +17,84 @@ main :: IO ()
 main = do
   args <- getArgs
   case length args of
-    0 -> runSuites ["main"]
+    0 -> runSuites ["all"]
     _ -> runSuites args
-
--- | Almost each testcase contains 3 fields:
---   name, input, expected output
-data TestCase 
-  = MainTest       String String  String   -- Tests the main application
-  | RoundtripTest  String Expr             -- Tests the roundtrip property (the input is equivalent to the output)
-  | LexTest        String String  [Token]  -- Tests the lexer
-  | ParseTest      String [Token] Expr     -- Tests the parser
-  | EvalTest       String Expr    String   -- Tests the evaluator
-  | FailTest       String String  String   -- Tests for failures
-
--- | Each testresult contains 4 fields:
---   name, input, expected output, actual output
-type TestResult = (String, String, String, String)
-
--- | For table-based testing. A row in the table contains:
--- * input to the program
--- * resulting token list from calling Lexer.lex on the input
--- * resulting expression from parsing the list of tokens with Parser.parse
--- * result after evaluating the parsed expression with Evaluator.eval
-type TableEntry = (String, [Token], Expr, String)
 
 
 runSuite :: String -> IO ()
-runSuite "main"      = runMainTests
-runSuite "prop"      = runPropTests
-runSuite "property"  = runPropTests
-runSuite "lex"       = runLexerTests
+runSuite "all"       = runAllTests  -- the default
+runSuite "property"  = runPropertyTests Nothing
 runSuite "lexer"     = runLexerTests
-runSuite "parse"     = runParserTests
 runSuite "parser"    = runParserTests
-runSuite "eval"      = runEvaluatorTests
 runSuite "evaluator" = runEvaluatorTests
-runSuite s           = putStrLn $ red $ "Unknown testsuite: " ++ s
+runSuite maybeSeed   = if take 5 maybeSeed == "seed-" && all isDigit (drop 5 maybeSeed)
+  then let theSeed = read $ (filter isDigit maybeSeed)
+       in  runPropertyTests (Just theSeed)
+  else putStrLn $ red $ "Unknown testsuite: " ++ maybeSeed
 
 runSuites :: [String] -> IO ()
 runSuites args = mapM_ runSuite args
 
-runMainTests:: IO ()
-runMainTests = do
-  putStrLn "Testing application..."
-  runPropTests
-  runTableTests
-  putStrLn "Testing application: done!"
+runAllTests:: IO ()
+runAllTests = do
+  putStrLn "Running all tests..."
+  runPropertyTests Nothing
+  runHappyTests
+  runUnhappyTests
+  runLexerTests
+  runParserTests
+  runEvaluatorTests
 
-runTableTests :: IO ()
-runTableTests = do
-  putStrLn "Table-based tests..."
-  testHappyFlow
-  testUnhappyFlow
-  putStrLn "Table-based tests: done!"
 
-runPropTests :: IO ()
-runPropTests = do
-  putStrLn "Property tests..."
-  randomGenerator <- newStdGen
+-- | Each testcase contains:
+--   name, input, expected output
+data TestCase
+  = MainTest       String String  String   -- Tests the main application
+  | RoundtripTest  String Expr             -- Tests the roundtrip property (the input is equivalent to the expected output)
+  | LexTest        String String  [Token]  -- Tests the lexer
+  | ParseTest      String [Token] Expr     -- Tests the parser
+  | EvalTest       String Expr    String   -- Tests the evaluator
+  | FailTest       String String  String   -- Tests for expected failures
+
+-- | Sum type for showing results.
+data ShowMe
+  = ShowAll    -- show complete test output
+  | ShowFail   -- show all failures and errors
+  | ShowErr    -- show all errors
+  | ShowNone   -- show nothing, only the summary
+
+runPropertyTests :: Maybe Int -> IO ()
+runPropertyTests maybeSeed = do
+  putStr "Property tests..."
+  -- If a seed was passed, use that instead of a randomly generated one.
+  seed <- case maybeSeed of
+    Nothing   -> uniformM globalStdGen :: IO Int
+    Just seed -> return seed
+  putStrLn $ " (seed: " ++ show seed ++ ")"
+  let randomGenerator = mkStdGen seed
   let inputs    = generateRoundtripInputs randomGenerator 1000
   let names     = map (\n -> "Roundtrip #" ++ show n) [1::Int ..]
   let testcases = map (\(tc, input) -> RoundtripTest tc input) (zip names inputs)
   let results   = runTests testcases
-  -- TODO: adapt showResults so it takes a boolean to only print FAIL ones
-  showResults (==) results
-  putStrLn "Property tests: done!"
+  showResults ShowFail (==) results
 
-testHappyFlow :: IO ()
-testHappyFlow = do
+runHappyTests :: IO ()
+runHappyTests = do
   putStrLn "Happy flow..."
   let names     = map (\n -> "Happy #" ++ show n) [1::Int ..]
   let inouts    = map (\(input, _, _, expected) -> (input, expected)) happyTable
   let testcases = map (\(name, (input, expected)) -> MainTest name input expected) (zip names inouts)
   let results   = runTests testcases
-  showResults (==) results
-  putStrLn "Happy flow: done!"
+  showResults ShowFail (==) results
 
-testUnhappyFlow :: IO ()
-testUnhappyFlow = do
+runUnhappyTests :: IO ()
+runUnhappyTests = do
   putStrLn "Unhappy flow..."
   let names      = map (\n -> "Unhappy #" ++ show n) [1::Int ..]
   let inouts     = map (\(input, _, _, expected) -> (input, expected)) unhappyTable
   let testcases  = map (\(name, (input, expected)) -> FailTest name input expected) (zip names inouts)
   let results    = runTests testcases
-  showResults (\actual expected -> expected `isInfixOf` actual) results
-  putStrLn "Unhappy flow: done!"
+  showResults ShowFail (\actual expected -> expected `isInfixOf` actual) results
 
 runLexerTests :: IO ()
 runLexerTests = do
@@ -108,8 +103,7 @@ runLexerTests = do
   let inouts     = map (\(input, expected, _, _) -> (input, expected)) happyTable
   let testcases  = map (\(name, (input, expected)) -> LexTest name input expected) (zip names inouts)
   let results    = runTests testcases
-  showResults (==) results 
-  putStrLn "Lexer tests: done!"
+  showResults ShowFail (==) results
 
 runParserTests :: IO ()
 runParserTests = do
@@ -118,8 +112,7 @@ runParserTests = do
   let inouts     = map (\(_, input, expected, _) -> (input, expected)) happyTable
   let testcases  = map (\(name, (input, expected)) -> ParseTest name input expected) (zip names inouts)
   let results    = runTests testcases
-  showResults (==) results
-  putStrLn "Parser tests: done!"
+  showResults ShowFail (==) results
 
 runEvaluatorTests :: IO ()
 runEvaluatorTests = do
@@ -128,19 +121,16 @@ runEvaluatorTests = do
   let inouts     = map (\(_, _, input, expected) -> (input, expected)) happyTable
   let testcases  = map (\(name, (input, expected)) -> EvalTest name input expected) (zip names inouts)
   let results    = runTests testcases
-  showResults (==) results
-  putStrLn "Evaluator tests: done!"
+  showResults ShowFail (==) results
 
 
 -- | Generate a random literal uniformly.
 generateLiteral :: RandomGen g => g -> Literal
-generateLiteral gen = 
-  let
-    (generateLInt, gen') = uniform gen
-  in
-    if generateLInt
-      then LInt   (fst (uniformR (0, 9001) gen'))
-      else LFloat (fst (uniformR (0, 9000.1) gen'))
+generateLiteral randomGenerator =
+  let (generateLInt, randomGenerator') = uniform randomGenerator
+  in  if generateLInt
+    then LInt   (fst (uniformR (0, 9001)   randomGenerator'))
+    else LFloat (fst (uniformR (0, 9000.1) randomGenerator'))
 
 -- | Generate the random unary operator.
 generateUnaryOp :: RandomGen g => g -> UnaryOp
@@ -148,78 +138,136 @@ generateUnaryOp _ = Neg
 
 -- | Generate a random binary operator uniformly.
 generateBinOp :: RandomGen g => g -> BinOp
-generateBinOp gen = [Add, Sub, Mul, Div] !! fst (uniformR (0, 3) gen)
+generateBinOp randomGenerator = [Add, Sub, Mul, Div] !! fst (uniformR (0, 3) randomGenerator)
 
 -- | Sum type for generating an expression.
-data ExprTag
-  = ETBinOp
-  | ETUnaryOp
-  | ETLiteral
+data ExprTag = ETBinOp | ETUnaryOp | ETLiteral
 
 -- | Generate a random expression according to following distribution:
---   80 % ELiteral
---   10 % EBinOp
---   10 % EUnaryOp
+--   8 out of 14 times: ELiteral
+--   3 out of 14 times: EBinOp
+--   3 out of 14 times: EBinOp
 generateExpr :: RandomGen g => g -> Expr
-generateExpr gen = 
+generateExpr randomGenerator =
   let
-    (genFreq, gen') = split gen
-    x               = frequency genFreq [(3, ETBinOp), (3, ETUnaryOp), (8, ETLiteral)]
-    (gen1, gen'')   = split gen'
-    (gen2, gen3)    = split gen''
+    (genFreq, randomGenerator')            = split randomGenerator
+    tagToGenerate                          = frequency genFreq [(3, ETBinOp), (3, ETUnaryOp), (8, ETLiteral)]
+    (randomGenerator1, randomGenerator'')  = split randomGenerator'
+    (randomGenerator2, randomGenerator3)   = split randomGenerator''
   in
-    case x of
-      ETBinOp    -> EBinOp   (generateBinOp gen1)   (generateExpr gen2) (generateExpr gen3)
-      ETUnaryOp  -> EUnaryOp (generateUnaryOp gen1) (generateExpr gen2)
-      ETLiteral  -> ELit     (generateLiteral gen1)
+    case tagToGenerate of
+      ETBinOp    -> EBinOp   (generateBinOp randomGenerator1)   (generateExpr randomGenerator2) (generateExpr randomGenerator3)
+      ETUnaryOp  -> EUnaryOp (generateUnaryOp randomGenerator1) (generateExpr randomGenerator2)
+      ETLiteral  -> ELit     (generateLiteral randomGenerator1)
 
+-- Function is impure due to `error`. But, this really is unreachable code, so it's OK.
 frequency :: RandomGen g => g -> [(Int, a)] -> a
-frequency gen lst =
+frequency randomGenerator lst =
   let
-    randBound         = sum (map fst lst) - 1
-    (randomNumber, _) = uniformR (0, randBound) gen
-  in 
+    generateMaxBound  = sum (map fst lst) - 1
+    (randomNumber, _) = uniformR (0, generateMaxBound) randomGenerator
+  in
     go lst randomNumber
   where
     go ((freq, x) : rest) n = if n < freq then x else go rest (n - freq)
     go [] _                 = error "Empty list in frequency recursion - should not happen."
 
 generateRoundtripInputs :: RandomGen g => g -> Int -> [Expr]
-generateRoundtripInputs gen n = 
+generateRoundtripInputs randomGenerator amountToGenerate =
   unfoldr
-    (\ (gen', i) -> if i == n
+    (\ (randomGenerator', currentCount) -> if currentCount == amountToGenerate
         then Nothing
-        else let (genA, genB) = split gen'
-             in Just (generateExpr genA, (genB, i + 1)))
-    (gen, 0)
+        else let (randomGeneratorA, randomGeneratorB) = split randomGenerator'
+             in  Just (generateExpr randomGeneratorA, (randomGeneratorB, currentCount + 1)))
+    (randomGenerator, 0)
 
+
+-- | Each testresult contains 4 fields:
+--   name, input, expected output, either an error message or actual output
+type TestResult = (String, String, String, Either String String)
 
 runTest :: TestCase -> TestResult
-runTest tc =
-  case tc of
-    RoundtripTest name input          -> (name, show input, show input,    show (Parser.parse $ Lexer.lex $ prettyprint input))
-    LexTest       name input expected -> (name, show input, show expected, show (Lexer.lex input))
-    ParseTest     name input expected -> (name, show input, show expected, show (Parser.parse input))
-    EvalTest      name input expected -> (name, show input, show expected, show (Evaluator.eval input))
-    MainTest      name input expected -> (name, show input, show expected, show (compute input))
-    -- This probably can only be done once I move to using Either String a everywhere.
-    FailTest      name input expected -> error "not yet implemented"
+runTest tc = case tc of
+  RoundtripTest name input ->
+    let maybeTokens = Lexer.lex (prettyprint input)
+    in  case maybeTokens of
+      Left errMessage -> (name, show input, show input, Left errMessage)
+      Right tokens    ->
+          let maybeExpr = Parser.parse tokens
+          in  case maybeExpr of
+            Left errMessage -> (name, show input, show input, Left errMessage)
+            Right expr      -> (name, show input, show input, Right (show expr))
+  LexTest       name input expected -> (name, show input, show expected, fmap show (Lexer.lex input))
+  ParseTest     name input expected -> (name, show input, show expected, fmap show (Parser.parse input))
+  EvalTest      name input expected -> (name, show input, show expected, Right (show (Evaluator.eval input)))
+  -- A 'MainTest' tests the happy flow. We do not expect an error here.
+  MainTest      name input expected -> (name, show input, show expected, fmap show (compute input))
+  -- A 'FailTest' tests the unhappy flow. An error message is GOOD here.
+  FailTest      name input expected -> case compute input of
+    Left desiredErrMessage ->
+      (name, show input, expected, Right (desiredErrMessage))
+    Right unwantedResult ->
+      (name, show input, show expected, Left $ "Test '" ++ name ++ "' with input " ++ show input ++ " gave a result (" ++ unwantedResult ++ ") when in stead we expected an error: " ++ expected)
 
 runTests :: [TestCase] -> [TestResult]
 runTests = map runTest
 
-showResult :: (String -> String -> Bool) -> TestResult -> String
-showResult isok (name, input, expected, actual) = 
-  let
-    base = ("Test: " ++ name ++ " (input='" ++ input ++ "')") 
-  in
-    if actual `isok` expected
-      then green $ base ++ " -> OK"
-      else red   $ base ++ "FAIL\n\texpected='" ++ expected ++ "'\n\tactual=" ++ actual ++ "'"
+data ShowResult
+  = Error String
+  | Ok String
+  | Fail String
 
-showResults :: (String -> String -> Bool) -> [TestResult] -> IO ()
-showResults f results = mapM_ putStrLn (map (\r -> showResult f r) results)
+showTheShowResult :: ShowResult -> String
+showTheShowResult (Error err)  = red   $ err
+showTheShowResult (Ok ok)      = green $ ok
+showTheShowResult (Fail fail') = red   $ fail'
 
+showResult :: (String -> String -> Bool) -> TestResult -> ShowResult
+showResult f_ok (name, input, expected, result) =
+  let base = "Test: " ++ name ++ " (input=" ++ input ++ ")"
+  in case result of
+    Left errMessage -> Error $ base ++ "\n\t" ++ errMessage
+    Right actual    -> if actual `f_ok` expected
+      then Ok   $ green $ base
+      else Fail $ base ++ "\n\texpected='" ++ expected ++ "'\n\tactual='" ++ actual ++ "'"
+
+
+partitionShowResults :: [ShowResult] -> ([String], [String], [String])
+partitionShowResults (sr : lst) = let (oks, errs, fails) = partitionShowResults lst in case sr of
+  Ok ok   -> ((green ok) : oks, errs,    fails  )
+  Error e -> (oks,     (red e) : errs, fails    )
+  Fail f  -> (oks,     errs,     (red f) : fails)
+partitionShowResults [] = ([], [], [])
+
+showResults :: ShowMe -> (String -> String -> Bool) -> [TestResult] -> IO ()
+showResults toShow f testResults = do
+  -- Compute some statistics about the testuite.
+  let allResults                           = map (\r -> showResult f r) testResults
+  let allCount                             = length allResults
+  let (okResults, errResults, failResults) = partitionShowResults allResults
+  let okCount                              = length okResults
+  let errCount                             = length errResults
+  let failCount                            = length failResults
+
+  let summary = "OK: "     ++ show okCount   ++ "/" ++ show allCount
+              ++ " FAIL: " ++ show failCount ++ "/" ++ show allCount
+              ++ " ERR: "  ++ show errCount  ++ "/" ++ show allCount
+
+  case toShow of
+    ShowAll  -> mapM_ putStrLn (map showTheShowResult allResults)
+    ShowFail -> mapM_ putStrLn (map show (errResults ++ failResults))
+    ShowErr  -> mapM_ putStrLn (map show (errResults))
+    ShowNone -> undefined
+
+  putStrLn summary
+
+
+-- | For table-based testing. A row in the table contains:
+-- * input to the program
+-- * resulting token list from calling Lexer.lex on the input
+-- * resulting expression from parsing the list of tokens with Parser.parse
+-- * result after evaluating the parsed expression with Evaluator.eval
+type TableEntry = (String, [Token], Expr, String)
 
 happyTable :: [TableEntry]
 happyTable = [
@@ -278,19 +326,20 @@ happyTable = [
 -- | A way to test for bad flows
 unhappyTable :: [TableEntry]
 unhappyTable = [
+  -- Lexer Error: unrecognised symbol
+   ("kaas", undefined, undefined, "unrecognised symbol")
   -- Parse Error: remaining tokens
   -- This error gets thrown when the parser thinks it's done, but there's still input to consume.
-   ("1 1",     [TLit (LInt 1), TLit (LInt 1)],                     undefined, "remaining tokens")
-  ,("1.1 1",   [TLit (LFloat 1.1), TLit (LInt 1)],                 undefined, "remaining tokens")
-  ,(".1 .1",   [TLit (LFloat 0.1), TLit (LFloat 0.1)],             undefined, "remaining tokens")
-  ,(". 1.1",   [TLit (LFloat 0.0), TLit (LFloat 1.1)],             undefined, "remaining tokens")
-  ,(". 1",     [TLit (LFloat 0.0), TLit (LInt 1)],                 undefined, "remaining tokens")
-  ,("- 1 1",   [TBinOp Sub, TLit (LInt 1), TLit (LInt 1)],         undefined, "remaining tokens")
-  ,("- 1.1 1", [TBinOp Sub, TLit (LFloat 1.1), TLit (LInt 1)],     undefined, "remaining tokens")
-  ,("- .1 .1", [TBinOp Sub, TLit (LFloat 0.1), TLit (LFloat 0.1)], undefined, "remaining tokens")
-  ,("- . 1.1", [TBinOp Sub, TLit (LFloat 0.0), TLit (LFloat 1.1)], undefined, "remaining tokens")
-  ,("- . 1",   [TBinOp Sub, TLit (LFloat 0.0), TLit (LInt 1)],     undefined, "remaining tokens")
-  
+  ,("1 1",     [TLit (LInt 1), TLit (LInt 1)],                                           undefined, "remaining tokens")
+  ,("1.1 1",   [TLit (LFloat 1.1), TLit (LInt 1)],                                       undefined, "remaining tokens")
+  ,(".1 .1",   [TLit (LFloat 0.1), TLit (LFloat 0.1)],                                   undefined, "remaining tokens")
+  ,(". 1.1",   [TLit (LFloat 0.0), TLit (LFloat 1.1)],                                   undefined, "remaining tokens")
+  ,(". 1",     [TLit (LFloat 0.0), TLit (LInt 1)],                                       undefined, "remaining tokens")
+  ,("- 1 1",   [TBinOp Sub, TLit (LInt 1), TLit (LInt 1)],                               undefined, "remaining tokens")
+  ,("- 1.1 1", [TBinOp Sub, TLit (LFloat 1.1), TLit (LInt 1)],                           undefined, "remaining tokens")
+  ,("- .1 .1", [TBinOp Sub, TLit (LFloat 0.1), TLit (LFloat 0.1)],                       undefined, "remaining tokens")
+  ,("- . 1.1", [TBinOp Sub, TLit (LFloat 0.0), TLit (LFloat 1.1)],                       undefined, "remaining tokens")
+  ,("- . 1",   [TBinOp Sub, TLit (LFloat 0.0), TLit (LInt 1)],                           undefined, "remaining tokens")
   ,("(1) 1",     [TParen L, TLit (LInt 1), TParen R, TLit (LInt 1)],                     undefined, "remaining tokens")
   ,("(1.1) 1",   [TParen L, TLit (LFloat 1.1), TParen R, TLit (LInt 1)],                 undefined, "remaining tokens")
   ,("(.1) .1",   [TParen L, TLit (LFloat 0.1), TParen R, TLit (LFloat 0.1)],             undefined, "remaining tokens")
@@ -301,7 +350,7 @@ unhappyTable = [
   ,("- (.1) .1", [TBinOp Sub, TParen L, TLit (LFloat 0.1), TParen R, TLit (LFloat 0.1)], undefined, "remaining tokens")
   ,("- (.) 1.1", [TBinOp Sub, TParen L, TLit (LFloat 0.0), TParen R, TLit (LFloat 1.1)], undefined, "remaining tokens")
   ,("- (.) 1",   [TBinOp Sub, TParen L, TLit (LFloat 0.0), TParen R, TLit (LInt 1)],     undefined, "remaining tokens")
-  
+
   -- Parse Error: mismatched parenthesis
   -- This error gets thrown when the parser is parsing a (block), but _something_ goes wrong.
   ,("(1 1)",     [TParen L, TLit (LInt 1), TLit (LInt 1), TParen R],                     undefined, "mismatched parenthesis")

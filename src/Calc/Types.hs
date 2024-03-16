@@ -1,18 +1,18 @@
 module Calc.Types where
 
 -- | There are 2 literals we support
-data Literal 
+data Literal
   = LInt Int                      -- Integers
   | LFloat Float                  -- Floats
   deriving (Show, Eq)
 
 -- | There is 1 unary operation we support
-data UnaryOp  
+data UnaryOp
   = Neg                           -- Negation,       i.e  -a
   deriving (Show, Eq)
 
 -- | There are 4 binary operations we support
-data BinOp 
+data BinOp
   = Add                           -- Addition,       i.e. a + b
   | Sub                           -- Subtraction,    i.e. a - b
   | Mul                           -- Multiplication, i.e. a * b
@@ -24,7 +24,7 @@ data LR = L | R
   deriving (Show, Eq)
 
 -- | A Token in the Lexer can be 3 things
-data Token 
+data Token
   = TLit Literal                  -- A literal
   | TBinOp BinOp                  -- A binary operation
   | TParen LR                     -- A paren
@@ -37,3 +37,7 @@ data Expr
   | EUnaryOp UnaryOp Expr         -- A unary operation
   deriving (Show, Eq)
 
+-- | A result (from evaluating an expression) can be 2 things
+data Result
+  = I Int                         -- An integer value
+  | F Float                       -- A floaty value

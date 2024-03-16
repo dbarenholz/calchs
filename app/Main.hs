@@ -10,4 +10,6 @@ main = do
   args      <- getArgs
   let arg    = unwords args
   let result = compute arg
-  putStrLn result
+  case result of
+    Left errMsg -> putStrLn $ errMsg
+    Right ok    -> putStrLn $ ok

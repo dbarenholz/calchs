@@ -4,21 +4,9 @@ import Numeric (showFFloat)
 
 import Calc.Types
 
-{--- public methods ---}
-
--- | The sole method we _really_ care about: eval.
---   It evaluates an expression, and returns it as string.
 eval :: Expr -> String
 eval e = showResult $ compute e
 
-{--- private methods ---}
-
--- | A result (from evaluating an expression) can be 2 things
-data Result 
-  = I Int                         -- An integer value
-  | F Float                       -- A floaty value
-
--- | We define how to print the Result datatype, which really is just `show`.
 showResult :: Result -> String
 showResult (I i) = show i
 showResult (F f) = showFFloat Nothing f ""
@@ -33,41 +21,29 @@ compute (EBinOp Sub lhs rhs) = sub' (compute lhs) (compute rhs)
 compute (EBinOp Mul lhs rhs) = mul' (compute lhs) (compute rhs)
 compute (EBinOp Div lhs rhs) = div' (compute lhs) (compute rhs)
 
-{--- helpers ---}
-
--- | negates a result
---   does what you'd expect
 negate' :: Result -> Result
 negate' (I i)  = I  (negate i)
 negate' (F f) = F (negate f)
 
--- | adds two results together
---   does what you'd expect
 add' :: Result -> Result -> Result
 (I i) `add'` (I i') = I (i              + i'            )
 (I i) `add'` (F f)  = F (fromIntegral i + f             )
 (F f) `add'` (I i)  = F (f              + fromIntegral i)
 (F f) `add'` (F f') = F (f              + f'            )
 
--- | subtract a result from a different result
---   does what you'd expect
 sub' :: Result -> Result -> Result
 (I i) `sub'` (I i') = I (i              - i'            )
 (I i) `sub'` (F f)  = F (fromIntegral i - f             )
 (F f) `sub'` (I i)  = F (f              - fromIntegral i)
 (F f) `sub'` (F f') = F (f              - f'            )
 
--- | multiplies two results together
---   does what you'd expect
 mul' :: Result -> Result -> Result
 (I i) `mul'` (I i') = I (i              * i'            )
 (I i) `mul'` (F f)  = F (fromIntegral i * f             )
 (F f) `mul'` (I i)  = F (f              * fromIntegral i)
 (F f) `mul'` (F f') = F (f              * f'            )
 
--- | divides a result by a different result
---   there is no integer division
---   will always result in a floaty value
+-- Division is always floaty.
 div' :: Result -> Result -> Result
 (I i) `div'` (I i') = F (fromIntegral i / fromIntegral i')
 (I i) `div'` (F f)  = F (fromIntegral i / f              )
