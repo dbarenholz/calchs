@@ -129,8 +129,9 @@ generateLiteral :: RandomGen g => g -> Literal
 generateLiteral randomGenerator =
   let (generateLInt, randomGenerator') = uniform randomGenerator
   in  if generateLInt
-    then LInt   (fst (uniformR (0, 9001)   randomGenerator'))
-    else LFloat (fst (uniformR (0, 9000.1) randomGenerator'))
+    then LInt   (fst (uniformR (0, 9001)     randomGenerator'))
+    -- Haskell, by default, writes floats smaller than 0.1 using scientific notation.
+    else LFloat (fst (uniformR (0.1, 9000.1) randomGenerator'))
 
 -- | Generate the random unary operator.
 generateUnaryOp :: RandomGen g => g -> UnaryOp
