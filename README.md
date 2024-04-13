@@ -23,6 +23,8 @@ Here is a brief roadmap of my ideas that I still want to do.
 - [ ] Interactive mode. To make this, I need to do some administration (for history), as well as handle arrow key inputs.
 - [ ] Functions: `floor`, `ceil`, `min`, `max`, .... This will introduce a new Literal type, which then needs to be correctly lexed, parsed, and evaluated.
 - [ ] List types. With list types, one can write `min(1, 2, 3, 4, 5)`, and it will return `1`. Implementing list types is involed in parsing (handle comma's) and evaluation, as the Result type will change.
+- [ ] Unit conversion between different types of units (so things like `feet` to `meter`, but also perhaps more esoteric units used in science).
+
 
 ## Building
 
