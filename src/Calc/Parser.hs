@@ -44,18 +44,32 @@ parseAddSub ts = case parseMultDiv ts of
 
 parseMultDivs :: Expr -> [Token] -> Either String (Expr, [Token])
 parseMultDivs lhs ts = case ts of
-  TBinOp Mul : ts' -> case parseBlock ts' of
+  TBinOp Mul : ts' -> case parsePow ts' of
     Left errMessage -> Left errMessage
     Right (rhs, ts'') -> let lhs' = EBinOp Mul lhs rhs
                          in  parseMultDivs lhs' ts''
-  TBinOp Div : ts' -> case parseBlock ts' of
+  TBinOp Div : ts' -> case parsePow ts' of
     Left errMessage -> Left errMessage
     Right (rhs, ts'') -> let lhs' = EBinOp Div lhs rhs
-                          in parseMultDivs lhs' ts''
+                         in  parseMultDivs lhs' ts''
   _ -> Right (lhs, ts)
 
--- parseMultDiv -> parseBlock
+-- parseMultDiv -> parsePow
 parseMultDiv :: [Token] -> Either String (Expr, [Token])
-parseMultDiv ts = case parseBlock ts of
+parseMultDiv ts = case parsePow ts of
   Left errMessage  -> Left errMessage
   Right (lhs, ts') -> parseMultDivs lhs ts'
+
+-- parsePow -> parseBlock
+parsePow :: [Token] -> Either String (Expr, [Token])
+parsePow ts = case parseBlock ts of
+  Left errMessage  -> Left errMessage
+  Right (lhs, ts') -> parsePows lhs ts'
+
+parsePows :: Expr -> [Token] -> Either String (Expr, [Token])
+parsePows lhs ts = case ts of
+  TBinOp Pow : ts' -> case parseBlock ts' of
+    Left errMessage -> Left errMessage
+    Right (rhs, ts'') -> let lhs' = EBinOp Pow lhs rhs
+                         in  parsePows lhs' ts''
+  _ -> Right (lhs, ts)

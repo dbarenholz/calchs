@@ -6,6 +6,7 @@ import Data.Char (isDigit)
 import Calc.Types
 
 lex :: String -> Either String [Token]
+lex ('^' : cs)                         = fmap (TBinOp Pow :) (lex cs)
 lex ('+' : cs)                         = fmap (TBinOp Add :) (lex cs)
 lex ('-' : cs)                         = fmap (TBinOp Sub :) (lex cs)
 lex ('*' : cs)                         = fmap (TBinOp Mul :) (lex cs)

@@ -20,6 +20,7 @@ compute (EBinOp Add lhs rhs) = add' (compute lhs) (compute rhs)
 compute (EBinOp Sub lhs rhs) = sub' (compute lhs) (compute rhs)
 compute (EBinOp Mul lhs rhs) = mul' (compute lhs) (compute rhs)
 compute (EBinOp Div lhs rhs) = div' (compute lhs) (compute rhs)
+compute (EBinOp Pow lhs rhs) = pow' (compute lhs) (compute rhs)
 
 negate' :: Result -> Result
 negate' (I i)  = I  (negate i)
@@ -50,3 +51,11 @@ div' :: Result -> Result -> Result
 (F f) `div'` (I i)  = F (f              / fromIntegral i )
 (F f) `div'` (F f') = F (f              / f'             )
 
+-- Haskell has different operators for computing powers.
+pow' :: Result -> Result -> Result
+(I i) `pow'` (I i') | i' >= 0  = I (i ^ i')
+(I i) `pow'` (I i') | i' < 0   = F (fromIntegral i ^^ i')
+(I i) `pow'` (I i')            = error $ "why do we get here? i = " ++ show i ++ "; i' = " ++ show i'
+(I i) `pow'` (F f)  = F (fromIntegral i ** f             )
+(F f) `pow'` (I i)  = F (f              ^^ i             )
+(F f) `pow'` (F f') = F (f              *  f'            )

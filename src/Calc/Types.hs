@@ -17,6 +17,7 @@ data BinOp
   | Sub                           -- Subtraction,    i.e. a - b
   | Mul                           -- Multiplication, i.e. a * b
   | Div                           -- Division,       i.e. a / b
+  | Pow                           -- Power,          i.e. a ^ b
   deriving (Show, Eq)
 
 -- | There are 2 types of parens we support: L ( and R )

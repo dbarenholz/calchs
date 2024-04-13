@@ -139,7 +139,7 @@ generateUnaryOp _ = Neg
 
 -- | Generate a random binary operator uniformly.
 generateBinOp :: RandomGen g => g -> BinOp
-generateBinOp randomGenerator = [Add, Sub, Mul, Div] !! fst (uniformR (0, 3) randomGenerator)
+generateBinOp randomGenerator = [Add, Sub, Mul, Div, Pow] !! fst (uniformR (0, 4) randomGenerator)
 
 -- | Sum type for generating an expression.
 data ExprTag = ETBinOp | ETUnaryOp | ETLiteral
@@ -284,6 +284,7 @@ happyTable = [
   ,("1-1", [TLit (LInt 1), TBinOp Sub, TLit (LInt 1)], EBinOp (Sub) (ELit (LInt 1)) (ELit (LInt 1)), "0")
   ,("1/1", [TLit (LInt 1), TBinOp Div, TLit (LInt 1)], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1.0") -- no integer division
   ,("1*1", [TLit (LInt 1), TBinOp Mul, TLit (LInt 1)], EBinOp (Mul) (ELit (LInt 1)) (ELit (LInt 1)), "1")
+  ,("1^1", [TLit (LInt 1), TBinOp Pow, TLit (LInt 1)], EBinOp (Pow) (ELit (LInt 1)) (ELit (LInt 1)), "1")
    -- Parens around literals
   ,("(1)", [TParen L, TLit (LInt 1), TParen R], ELit (LInt 1), "1")
   ,("(1.1)", [TParen L, TLit (LFloat 1.1), TParen R], ELit (LFloat 1.1), "1.1")
@@ -322,6 +323,8 @@ happyTable = [
   ,("(  1 )-(1)", [TParen L, TLit (LInt 1), TParen R, TBinOp Sub, TParen L, TLit (LInt 1), TParen R], EBinOp (Sub) (ELit (LInt 1)) (ELit (LInt 1)), "0")
   ,("   ( 1)/(1)", [TParen L, TLit (LInt 1), TParen R, TBinOp Div, TParen L, TLit (LInt 1), TParen R], EBinOp (Div) (ELit (LInt 1)) (ELit (LInt 1)), "1.0") -- no integer division
   ,("(1)*( 1 ) ", [TParen L, TLit (LInt 1), TParen R, TBinOp Mul, TParen L, TLit (LInt 1), TParen R], EBinOp (Mul) (ELit (LInt 1)) (ELit (LInt 1)), "1")
+  -- smoke test: Order of operations: pow > mul+div > add+sub
+  ,("1 + 2 ^ 2 * 2", [TLit (LInt 1), TBinOp Add, TLit (LInt 2), TBinOp Pow, TLit (LInt 2), TBinOp Mul, TLit (LInt 2)], EBinOp (Add) (ELit (LInt 1)) (EBinOp (Mul) (EBinOp (Pow) (ELit (LInt 2))(ELit (LInt 2))) (ELit (LInt 2)) ), "9")
   ]
 
 -- | A way to test for bad flows

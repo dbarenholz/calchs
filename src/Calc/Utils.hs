@@ -24,6 +24,7 @@ binopPrint (Add) = "+"
 binopPrint (Sub) = "-"
 binopPrint (Mul) = "*"
 binopPrint (Div) = "/"
+binopPrint (Pow) = "^"
 
 unaryopPrint :: UnaryOp -> String
 unaryopPrint (Neg) = "-"
