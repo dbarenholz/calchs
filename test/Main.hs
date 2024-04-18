@@ -325,6 +325,7 @@ happyTable = [
   ,("(1)*( 1 ) ", [TParen L, TLit (LInt 1), TParen R, TBinOp Mul, TParen L, TLit (LInt 1), TParen R], EBinOp (Mul) (ELit (LInt 1)) (ELit (LInt 1)), "1")
   -- smoke test: Order of operations: pow > mul+div > add+sub
   ,("1 + 2 ^ 2 * 2", [TLit (LInt 1), TBinOp Add, TLit (LInt 2), TBinOp Pow, TLit (LInt 2), TBinOp Mul, TLit (LInt 2)], EBinOp (Add) (ELit (LInt 1)) (EBinOp (Mul) (EBinOp (Pow) (ELit (LInt 2))(ELit (LInt 2))) (ELit (LInt 2)) ), "9")
+  ,("2 ^ 3 ^ 2", [TLit (LInt 2), TBinOp Pow, TLit (LInt 3), TBinOp Pow, TLit (LInt 2)], EBinOp (Pow) (ELit (LInt 2)) (EBinOp (Pow) (ELit (LInt 3)) (ELit (LInt 2))), "512")
   ]
 
 -- | A way to test for bad flows

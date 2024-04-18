@@ -13,13 +13,13 @@ parse tokens = case parseAddSub tokens of
 
 -- parseBlock -> ( parseAddSub ) | - parseBlock
 parseBlock :: [Token] -> Either String (Expr, [Token])
-parseBlock ((TLit lit) : ts) = Right (ELit lit, ts)
-parseBlock ((TParen L) : ts) = case parseAddSub ts of
+parseBlock (TLit lit : ts) = Right (ELit lit, ts)
+parseBlock (TParen L : ts) = case parseAddSub ts of
   Left errMessage   -> Left errMessage
   Right (expr, ts') -> case ts' of
     TParen R : ts'' -> Right (expr, ts'')
-    _               -> Left $  "parse error: mismatched parenthesis?"
-parseBlock ((TBinOp Sub) : ts) = case parseBlock ts of
+    _               -> Left $ "parse error: mismatched parenthesis?"
+parseBlock (TBinOp Sub : ts) = case parseBlock ts of
   Left errMessage   -> Left errMessage
   Right (expr, ts') -> Right (EUnaryOp Neg expr, ts')
 parseBlock _ = Left $ "parse error: unknown symbol in parseBlock (or EOF)"
@@ -64,12 +64,8 @@ parseMultDiv ts = case parsePow ts of
 parsePow :: [Token] -> Either String (Expr, [Token])
 parsePow ts = case parseBlock ts of
   Left errMessage  -> Left errMessage
-  Right (lhs, ts') -> parsePows lhs ts'
-
-parsePows :: Expr -> [Token] -> Either String (Expr, [Token])
-parsePows lhs ts = case ts of
-  TBinOp Pow : ts' -> case parseBlock ts' of
-    Left errMessage -> Left errMessage
-    Right (rhs, ts'') -> let lhs' = EBinOp Pow lhs rhs
-                         in  parsePows lhs' ts''
-  _ -> Right (lhs, ts)
+  Right (lhs, ts') -> case ts' of
+    TBinOp Pow : ts'' -> case parsePow ts'' of
+      Left errMessage    -> Left errMessage
+      Right (rhs, ts''') -> Right (EBinOp Pow lhs rhs, ts''')
+    _                 -> Right (lhs, ts')

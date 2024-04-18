@@ -27,35 +27,34 @@ negate' (I i)  = I  (negate i)
 negate' (F f) = F (negate f)
 
 add' :: Result -> Result -> Result
-(I i) `add'` (I i') = I (i              + i'            )
-(I i) `add'` (F f)  = F (fromIntegral i + f             )
-(F f) `add'` (I i)  = F (f              + fromIntegral i)
-(F f) `add'` (F f') = F (f              + f'            )
+I i `add'` I i' = I (i              + i'            )
+I i `add'` F f  = F (fromIntegral i + f             )
+F f `add'` I i  = F (f              + fromIntegral i)
+F f `add'` F f' = F (f              + f'            )
 
 sub' :: Result -> Result -> Result
-(I i) `sub'` (I i') = I (i              - i'            )
-(I i) `sub'` (F f)  = F (fromIntegral i - f             )
-(F f) `sub'` (I i)  = F (f              - fromIntegral i)
-(F f) `sub'` (F f') = F (f              - f'            )
+I i `sub'` I i' = I (i              - i'            )
+I i `sub'` F f  = F (fromIntegral i - f             )
+F f `sub'` I i  = F (f              - fromIntegral i)
+F f `sub'` F f' = F (f              - f'            )
 
 mul' :: Result -> Result -> Result
-(I i) `mul'` (I i') = I (i              * i'            )
-(I i) `mul'` (F f)  = F (fromIntegral i * f             )
-(F f) `mul'` (I i)  = F (f              * fromIntegral i)
-(F f) `mul'` (F f') = F (f              * f'            )
+I i `mul'` I i' = I (i              * i'            )
+I i `mul'` F f  = F (fromIntegral i * f             )
+F f `mul'` I i  = F (f              * fromIntegral i)
+F f `mul'` F f' = F (f              * f'            )
 
 -- Division is always floaty.
 div' :: Result -> Result -> Result
-(I i) `div'` (I i') = F (fromIntegral i / fromIntegral i')
-(I i) `div'` (F f)  = F (fromIntegral i / f              )
-(F f) `div'` (I i)  = F (f              / fromIntegral i )
-(F f) `div'` (F f') = F (f              / f'             )
+I i `div'` I i' = F (fromIntegral i / fromIntegral i')
+I i `div'` F f  = F (fromIntegral i / f              )
+F f `div'` I i  = F (f              / fromIntegral i )
+F f `div'` F f' = F (f              / f'             )
 
 -- Haskell has different operators for computing powers.
 pow' :: Result -> Result -> Result
-(I i) `pow'` (I i') | i' >= 0  = I (i ^ i')
-(I i) `pow'` (I i') | i' < 0   = F (fromIntegral i ^^ i')
-(I i) `pow'` (I i')            = error $ "why do we get here? i = " ++ show i ++ "; i' = " ++ show i'
-(I i) `pow'` (F f)  = F (fromIntegral i ** f             )
-(F f) `pow'` (I i)  = F (f              ^^ i             )
-(F f) `pow'` (F f') = F (f              *  f'            )
+I i `pow'` I i' | i' >= 0   = I (i ^ i')
+                | otherwise = F (fromIntegral i ^^ i')
+I i `pow'` F f  = F (fromIntegral i ** f             )
+F f `pow'` I i  = F (f              ^^ i             )
+F f `pow'` F f' = F (f              ** f'            )
