@@ -256,8 +256,8 @@ showResults toShow f testResults = do
 
   case toShow of
     ShowAll  -> mapM_ putStrLn (map showTheShowResult allResults)
-    ShowFail -> mapM_ putStrLn (map show (errResults ++ failResults))
-    ShowErr  -> mapM_ putStrLn (map show (errResults))
+    ShowFail -> mapM_ putStrLn (errResults ++ failResults)
+    ShowErr  -> mapM_ putStrLn errResults
     ShowNone -> undefined
 
   putStrLn summary
