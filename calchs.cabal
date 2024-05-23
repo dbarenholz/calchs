@@ -14,10 +14,11 @@ common commonOptions
 
 library
   import:           commonOptions
-  exposed-modules:  Calc.Lexer, Calc.Parser, Calc.Evaluator, Calc.Types, Calc.Utils, Calc
+  exposed-modules:  Calc.Lexer, Calc.Parser, Calc.Evaluator, Calc.Types, Calc.Utils, Calc.Interactive, Calc.Interactive.Key, Calc.Interactive.Runner, Calc
   hs-source-dirs:   src
   build-depends:
-    base ^>= 4.17.2.0
+    base ^>= 4.17.2.0,
+    mtl
 
 executable calchs
   import:           commonOptions
