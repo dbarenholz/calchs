@@ -10,13 +10,13 @@ A calculator language, implemented in Haskell. This project has three main reaso
 
 1. Supports numbers (duh), and differentiates between `integer`s and `float`s.
 2. Supports following unary operations:
-  1. negation: `-1`
+    1. negation: `-1`
 3. Supports following binary operations:
-  1. addition: `1 + 1`
-  2. subtraction: `1 - 1`
-  3. multiplication: `1 * 1`
-  4. division: `1 / 1`
-  5. power: `1 ^ 1`
+    1. addition: `1 + 1`
+    2. subtraction: `1 - 1`
+    3. multiplication: `1 * 1`
+    4. division: `1 / 1`
+    5. power: `1 ^ 1`
 4. Supports arbitrary (matched) parenthesized expressions; `(((1))) + ((((-1))))` is `0`.
 5. Usable in scripts. Running `calchs "1 + $(calchs "1+1")"` will print `3` on `stdin`.
 6. WIP: Usable as interactive session. Running `calchs` (with no arguments) will spawn an interactive session where you can do all sorts of fun math.
@@ -56,8 +56,6 @@ Here is a roadmap of things that I still want to do.
 **Testing**:
 
 - [ ] Test for underflows and overflows
-
-
 
 ## Building
 
