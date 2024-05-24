@@ -208,7 +208,7 @@ runTest tc = case tc of
     Left desiredErrMessage ->
       (name, show input, expected, Right (desiredErrMessage))
     Right unwantedResult ->
-      (name, show input, show expected, Left $ "Test '" ++ name ++ "' with input " ++ show input ++ " gave a result (" ++ unwantedResult ++ ") when in stead we expected an error: " ++ expected)
+      (name, show input, show expected, Left $ "Test '" ++ name ++ "' with input " ++ show input ++ " gave a result (" ++ unwantedResult ++ ") when instead we expected an error: " ++ expected)
 
 runTests :: [TestCase] -> [TestResult]
 runTests = map runTest
