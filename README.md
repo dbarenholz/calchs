@@ -1,3 +1,5 @@
+<p align="center"><em>this repository is mirrored from my own <a href="https://dbarenholz.hopto.org/gitea/dan/calchs">gitea</a> instance</em></p>
+
 ## calchs
 
 A calculator language, implemented in Haskell. This project has three main reasons for existing.
