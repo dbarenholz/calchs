@@ -10,18 +10,31 @@ A calculator language, implemented in Haskell. This project has three main reaso
 
 ## Features
 
-1. Supports numbers (duh), and differentiates between `integer`s and `float`s.
-2. Supports following unary operations:
+These are the current features that `calchs` supports. This list will inevitably change in the future.
+
+1. Supports numbers, differentiating between `Int`s and `Float`s.
+2. Supports unary operations:
     1. negation: `-1`
-3. Supports following binary operations:
+3. Supports binary operations:
     1. addition: `1 + 1`
     2. subtraction: `1 - 1`
     3. multiplication: `1 * 1`
     4. division: `1 / 1`
     5. power: `1 ^ 1`
-4. Supports arbitrary (matched) parenthesized expressions; `(((1))) + ((((-1))))` is `0`.
-5. Usable in scripts. Running `calchs "1 + $(calchs "1+1")"` will print `3` on `stdin`.
-6. WIP: Usable as interactive session. Running `calchs` (with no arguments) will spawn an interactive session where you can do all sorts of fun math.
+4. Supports arbitrary (matched) parenthesized expressions; running `calchs "(((1))) + ((((-1))))"` returns `0`.
+5. Usable in scripts. Running `calchs "1 + $(calchs "1+1")"` will return `3` on `stdin`.
+6. Usable as interactive session. Running `calchs` (with no arguments) will spawn an interactive session where you can do all sorts of fun math.
+7. Supports certain options. See [the options](#options) for details.
+
+
+## Options
+
+These are the options that `calchs` currently supports.
+
+* `--help` (or `-h`): shows help for the program
+
+
+See also [the roadmap](#roadmap) for options that are parsed, but not yet implemented.
 
 ## Tests
 
@@ -37,20 +50,25 @@ See also [how to run the tests yourself](#testing).
 
 ## Roadmap
 
-Here is a roadmap of things that I still want to do.
+**Options**:
 
-**Interactive mode**:
+* `--joke`: enables the joke mode
+* `--imprecise`: enables an imprecise mode
+* `--cats`: emulate cats walking over your keyboard in interactive mode
+* `--scientific`: enables scientific notation for results
+* `--convert`: enable conversion mode
+* `--mode [b(inary) | h(ex) | 1234]`: sets binary (`b` and `binary` work), hex (`h` and `hex` work), or arbitary base mode by passing an `Int`.
 
-- [ ] Ensure that I'm parsing the right thing for my own terminal, _not_ the one obtained when doing `:term` in nvim.
-- [ ] Figure out how to keep track of history for `Up` and `Down`.
-- [ ] Properly handle `ALT` keypresses with a timeout.
+> Note that the last option takes precedence.
+> Running `calchs --mode h --mode b --mode 10`, we silently ignore `--mode h` and `--mode b`, and simply set the mode to base 10 (which is default).
+
 
 **Features**:
 
 - [ ] Functions: `floor`, `ceil`, `min`, `max`, .... This will introduce a new Literal type, which then needs to be correctly lexed, parsed, and evaluated.
 	- [ ] Eventually: figure out how to auto-complete words (e.g. `floor`) when pressing `Tab`.
-- [ ] List types. With list types, one can write `min(1, 2, 3, 4, 5)`, and it will return `1`. Implementing list types is involed in parsing (handle comma's) and evaluation, as the Result type will change.
-- [ ] Flags, e.g. for scientific mode.
+- [ ] List types. With list types, one can write `min(1, 2, 3, 4, 5)`, and it will return `1`. Implementing list types is involed in parsing (handle comma's) and evaluation, as the Result type will change. _Note: notation not final._
+  - [ ] When we have lists (vectors), we can implement operations for those e.g. scalar multiplication `*`, the dot product `.`, the cross product `x`, ...
 - [ ] Conversions
     - [ ] Between different units of length, mass, and others.
     - [ ] Between different number representations (e.g. binary, octal, hex).
@@ -58,6 +76,8 @@ Here is a roadmap of things that I still want to do.
 **Testing**:
 
 - [ ] Test for underflows and overflows
+- [ ] Test for parsing options accurately
+- [ ] Test for _using_ options accurately
 
 ## Building
 

@@ -42,3 +42,22 @@ data Expr
 data Result
   = I Int                         -- An integer value
   | F Float                       -- A floaty value
+
+-- | Supported number formats are normal (10000) and scientific (10e4)
+data NumberFormat = Normal | Scientific  deriving (Show)
+
+-- | Supported number modes are binary (11111), hexadecimal () and default, which is base 10. You can also specify the base directly.
+data NumberMode   = Binary | Hex | Base Int | Default deriving (Show)
+
+
+-- | These are options that calchs support
+data Options = Options
+  { help :: Bool
+  , version :: Bool
+  , joke :: Bool
+  , imprecise :: Bool
+  , cats :: Bool
+  , convert :: Bool
+  , numberFormat :: NumberFormat
+  , numberMode :: NumberMode
+  } deriving (Show)

@@ -4,12 +4,12 @@ import Numeric (showFFloat)
 
 import Calc.Types
 
-eval :: Expr -> String
-eval e = showResult $ compute e
+eval :: Options -> Expr -> String
+eval opts e = showResult opts (compute e)
 
-showResult :: Result -> String
-showResult (I i) = show i
-showResult (F f) = showFFloat Nothing f ""
+showResult :: Options -> Result -> String
+showResult opts (I i) = show i
+showResult opts (F f) = showFFloat Nothing f ""
 
 -- | given an expression, compute the result
 compute :: Expr -> Result
