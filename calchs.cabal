@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name:          calchs
-version:       0.0.1.0
+version:       0.0.1.1
 
 synopsis:      Command line calculator tool.
 description:   A simple command line calculator tool.
@@ -14,10 +14,11 @@ common commonOptions
 
 library
   import:           commonOptions
-  exposed-modules:  Calc.Lexer, Calc.Parser, Calc.Evaluator, Calc.Types, Calc.Utils, Calc.Interactive, Calc.Interactive.Key, Calc.Interactive.Runner, Calc
+  exposed-modules:  Calc.Lexer, Calc.Parser, Calc.Evaluator, Calc.Types, Calc.Utils, Calc.Interactive, Calc
   hs-source-dirs:   src
   build-depends:
     base ^>= 4.17.2.0,
+    haskeline,
     mtl
 
 executable calchs
