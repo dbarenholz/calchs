@@ -32,6 +32,7 @@ These are the current features that `calchs` supports. This list will inevitably
 These are the options that `calchs` currently supports.
 
 * `--help` (or `-h`): shows help for the program
+* `--version`: shows the program version
 
 
 See also [the roadmap](#roadmap) for options that are parsed, but not yet implemented.
