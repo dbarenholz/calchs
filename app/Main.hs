@@ -2,7 +2,7 @@ module Main where
 
 import System.Environment (getArgs)
 import Data.Maybe (fromJust, isNothing)
-import Data.Char (isDigit)
+import Data.Char (isDigit, toLower)
 
 import qualified Data.Version as C (showVersion)
 import qualified Paths_calchs as C (version)
@@ -10,28 +10,23 @@ import qualified Paths_calchs as C (version)
 import Calc (compute)
 import Calc.Interactive (runInteractively)
 import Calc.Types (Options(..), NumberMode (..), NumberFormat (..))
+import Control.Applicative (optional)
 
--- | Main function. Parsers arguments, then computes the result and prints it.
+-- | Parses options and arguments. Computes the result and prints it, or runs the calculator interactively.
 main :: IO ()
 main = do
-  -- get arguments passed to calchs
   args <- getArgs
-  -- parse those arguments into options, and the desired query
   let (opts, maybeQuery) = parseArguments args initOpts
-  -- Show help if desired
   if help opts then showHelp
-  -- Otherwise show version if desired
   else if version opts then showVersion
-       -- Otherwise run interactively if no query
-       else if isNothing maybeQuery then runInteractively opts
-            -- Otherwise compute the result of the query
-            else do
-                 let result = compute opts (fromJust maybeQuery)
-                 case result of
-                   Left errMsg -> putStrLn errMsg
-                   Right ok    -> putStrLn ok
+  else if isNothing maybeQuery then runInteractively opts
+  else do
+    let result = compute opts (fromJust maybeQuery)
+    case result of
+      Left errMsg -> putStrLn errMsg
+      Right ok    -> putStrLn ok
 
--- | Default values for options
+-- | Default values for options.
 initOpts :: Options
 initOpts = Options
   { numberMode=Default
@@ -44,14 +39,17 @@ initOpts = Options
   , cats=False
   }
 
+-- | Shows the program version, then exits.
 showVersion :: IO ()
 showVersion = putStr (C.showVersion C.version)
 
+-- | Shows the program help, then exits.
 showHelp :: IO ()
 showHelp =
   let
     opts =
       [ "--help (or -h): shows help for the program (you're looking at it)"
+      , "--version: return the version number (without newline)"
       , "--joke: enables the joke mode"
       , "--imprecise: enables an imprecise mode"
       , "--cats: emulate cats walking over your keyboard in interactive mode"
@@ -73,75 +71,25 @@ showHelp =
       ]
   in putStr (unlines helpMsg)
 
-
--- | Parses options and an optional computation from the program arguments.
+-- | Parses options and query from program arguments.
 parseArguments :: [String] -> Options -> (Options, Maybe String)
 parseArguments args opts =
-  -- Parse options from the arguments
-  let (args', opts') = parseOption (args, opts)
-      -- If we have elements left, then we have some computation.
+  let (args', opts') = parseOption args opts
       query          = if null args' then Nothing else Just (unwords args')
   in  (opts', query)
 
--- | Parse options recursively from the program arguments, returning the options found, and possibly remaining arguments.
-parseOption :: ([String], Options) -> ([String], Options)
-parseOption (args, opts) =
-  -- If we have no arguments, then we're done.
-  if null args then (args, opts)
-  -- Otherwise, take 2 arguments and attempt to parse an option from it.
-  else let items            = take 2 args
-           (skipped, opts') = parseOptionPair (head items) (last items) opts
-           -- If we didn't skip anything, we're done after this parse.
-       in if skipped == 0 then  (args, opts')
-           -- Othwerwise, continue parsing options, dropping the items to skip
-          else parseOption (drop skipped args, opts')
+-- | Parse options from program arguments, without consuming optional query.
+parseOption :: [String] -> Options -> ([String], Options)
+parseOption ("--mode":base:args) opts | base == "10"               = parseOption args opts { numberMode = Default }
+parseOption ("--mode":base:args) opts | isDigit (head base)        = parseOption args opts { numberMode = Base (read base) }
+parseOption ("--mode":mode:args) opts | toLower (head mode) == 'b' = parseOption args opts { numberMode = Binary }
+parseOption ("--mode":mode:args) opts | toLower (head mode) == 'h' = parseOption args opts { numberMode = Hex }
+parseOption (flag:args) opts | flag `elem` ["-h", "--help"]        = parseOption args opts { help = True }
+parseOption (flag:args) opts | flag `elem` ["-c", "--convert"]     = parseOption args opts { convert = True }
+parseOption (flag:args) opts | flag == "--joke"                    = parseOption args opts { joke = True }
+parseOption (flag:args) opts | flag == "--version"                 = parseOption args opts { version = True }
+parseOption (flag:args) opts | flag == "--imprecise"               = parseOption args opts { imprecise = True }
+parseOption (flag:args) opts | flag == "--cats"                    = parseOption args opts { cats = True }
+parseOption (flag:args) opts | flag == "--scientific"              = parseOption args opts { numberFormat = Scientific }
+parseOption args opts                                              = (args, opts)
 
--- | Helper function for parsing options.
-parseOptionPair :: String -> String -> Options -> (Int, Options)
-parseOptionPair opt _ opts   | opt == "--help"    || opt == "-h"     = (1, opts { help=True })
-parseOptionPair opt _ opts   | opt == "--convert" || opt == "-c"     = (1, opts { convert=True })
-parseOptionPair opt _ opts   | opt == "--joke"                       = (1, opts { joke=True })
-parseOptionPair opt _ opts   | opt == "--version"                    = (1, opts { version=True })
-parseOptionPair opt _ opts   | opt == "--imprecise"                  = (1, opts { imprecise=True })
-parseOptionPair opt _ opts   | opt == "--cats"                       = (1, opts { cats=True })
-parseOptionPair opt _ opts   | opt == "--scientific"                 = (1, opts { numberFormat=Scientific })
-parseOptionPair opt val opts | opt == "--mode" && head val == 'b'    = (2, opts { numberMode=Binary })
-parseOptionPair opt val opts | opt == "--mode" && head val == 'h'    = (2, opts { numberMode=Hex })
-parseOptionPair opt val opts | opt == "--mode" && isDigit (head val)
-  = if read val == (10 :: Int) then (2, opts {numberMode=Default})
-    else (2, opts { numberMode=Base (read val) })
-parseOptionPair _ _ opts = (0, opts)
-
-
-{-
--- This section is left for debugging purposes.
--- There are a few functions with identical implementation, but wrapped in an IO monad for debugging.
-
-parseArguments' :: [String] -> Options -> IO (Options, Maybe String)
-parseArguments' args opts = do
-  putStrLn "parseArguments:"
-  (args', opts') <-  parseOption' (args, opts)
-  putStrLn $ "  opts' = " ++ show opts'
-  putStrLn $ "  args' = " ++ show args'
-  let query = if null args' then Nothing else Just (unwords args')
-  putStrLn $ "  query = " ++ show query
-  return (opts', query)
-
-parseOption' :: ([String], Options) -> IO ([String], Options)
-parseOption' (args, opts) = do
-  putStrLn "parseOption:"
-  putStrLn $ "  args = " ++ show args
-  putStrLn $ "  opts = " ++ show opts
-  if null args
-    then return (args, opts)
-    else do
-      let items = take 2 args
-      putStrLn $ "  items = " ++ show items
-      let (skipped, opts') = parseOptionPair (head items) (last items) opts
-      putStrLn $ "    skipped = " ++ show skipped
-      putStrLn $ "    opts' = " ++ show opts'
-      if skipped == 0
-          then return (args, opts')
-          else parseOption' (drop skipped args, opts')
-
--}

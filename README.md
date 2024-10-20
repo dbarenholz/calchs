@@ -21,8 +21,8 @@ These are the current features that `calchs` supports. This list will inevitably
     3. multiplication: `1 * 1`
     4. division: `1 / 1`
     5. power: `1 ^ 1`
-4. Supports arbitrary (matched) parenthesized expressions; running `calchs "(((1))) + ((((-1))))"` returns `0`.
-5. Usable in scripts. Running `calchs "1 + $(calchs "1+1")"` will return `3` on `stdin`.
+4. Supports arbitrary (matched) parenthesized expressions; running `calchs "(((1))) + ((((-1))))"` prints `0`.
+5. Usable in scripts. Running `calchs "1 + $(calchs "1+1")"` will print `3`.
 6. Usable as interactive session. Running `calchs` (with no arguments) will spawn an interactive session where you can do all sorts of fun math.
 7. Supports certain options. See [the options](#options) for details.
 
@@ -33,7 +33,6 @@ These are the options that `calchs` currently supports.
 
 * `--help` (or `-h`): shows help for the program
 * `--version`: shows the program version
-
 
 See also [the roadmap](#roadmap) for options that are parsed, but not yet implemented.
 
@@ -85,8 +84,8 @@ See also [how to run the tests yourself](#testing).
 This project uses _Cabal_.
 If you don't have _Cabal_ or _GHC_ yet, I suggest installing them through [ghcup](https://www.haskell.org/ghcup/).
 
-Build the project using `cabal build`.
-Then, use `cabal list-bin` to find where cabal put the executable.
+Build the project using `cabal build`. Install it using `cabal install`: this puts a symlink to the binary in `~/.cabal/bin`.
+Alternatively, use `cabal list-bin` to find where cabal put the executable, and manually copy/symlink it.
 
 ## Testing
 
