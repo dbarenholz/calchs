@@ -36,6 +36,5 @@ test-suite test
   hs-source-dirs:   test
   build-depends:
     base,
-    process,
-    random,
+    hspec,
     calchs
