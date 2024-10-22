@@ -8,9 +8,9 @@ import qualified Data.Version as C (showVersion)
 import qualified Paths_calchs as C (version)
 
 import Calc (compute)
+import Calc.Utils (initOpts)
 import Calc.Interactive (runInteractively)
 import Calc.Types (Options(..), NumberMode (..), NumberFormat (..))
-import Control.Applicative (optional)
 
 -- | Parses options and arguments. Computes the result and prints it, or runs the calculator interactively.
 main :: IO ()
@@ -23,21 +23,9 @@ main = do
   else do
     let result = compute opts (fromJust maybeQuery)
     case result of
-      Left errMsg -> putStrLn errMsg
+      Left errMsg -> putStrLn $ show errMsg
       Right ok    -> putStrLn ok
 
--- | Default values for options.
-initOpts :: Options
-initOpts = Options
-  { numberMode=Default
-  , numberFormat=Normal
-  , joke=False
-  , imprecise=False
-  , help=False
-  , version=False
-  , convert=False
-  , cats=False
-  }
 
 -- | Shows the program version, then exits.
 showVersion :: IO ()
