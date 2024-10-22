@@ -23,7 +23,7 @@ compute (EBinOp Div lhs rhs) = div' (compute lhs) (compute rhs)
 compute (EBinOp Pow lhs rhs) = pow' (compute lhs) (compute rhs)
 
 negate' :: Result -> Result
-negate' (I i)  = I  (negate i)
+negate' (I i) = I  (negate i)
 negate' (F f) = F (negate f)
 
 add' :: Result -> Result -> Result
