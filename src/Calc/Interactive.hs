@@ -8,7 +8,7 @@ import Calc.Types (Options)
 
 -- | Helper method to show the result.
 showResult :: MonadIO m => Either String String -> InputT m ()
-showResult (Left err) = outputStrLn err
+showResult (Left err) = outputStrLn $ show err
 showResult (Right ok) = outputStrLn $ "= " ++ ok
 
 -- | REPL using haskeline

@@ -4,6 +4,7 @@ import Prelude hiding (lex)
 import Data.Char (isDigit)
 
 import Calc.Types
+import Calc.Utils (errMessage)
 
 lex :: String -> Either String [Token]
 lex ('^' : cs)                         = fmap (TBinOp Pow :) (lex cs)
@@ -26,7 +27,7 @@ lex (c   : cs) | isDigit c || c == '.' =
     _ -> fmap (TLit (LInt (read digits)) :) (lex rest)
 
 lex []                                = Right []
-lex (c : _)                           = Left $ "Lexer: unrecognised symbol: '" ++ [c] ++ "'"
+lex (c : _)                           = Left $ show errMessage { during = "lexing", reason = "unknown symbol: '" ++ [c] ++ "'"}
 
 
 -- | When lexing a floaty value, we need to tell Haskell that ".5" is "0.5"

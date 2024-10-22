@@ -49,7 +49,6 @@ data NumberFormat = Normal | Scientific  deriving (Show)
 -- | Supported number modes are binary (11111), hexadecimal () and default, which is base 10. You can also specify the base directly.
 data NumberMode   = Binary | Hex | Base Int | Default deriving (Show)
 
-
 -- | These are options that calchs support
 data Options = Options
   { help :: Bool
@@ -61,3 +60,10 @@ data Options = Options
   , numberFormat :: NumberFormat
   , numberMode :: NumberMode
   } deriving (Show)
+
+-- | A datatype for handling errors in the program.
+data Err = Err { during :: String, reason :: String }
+
+-- | A custom show for errors, so I can't accidentally screw up things.
+instance Show Err where
+  show (Err d r) = "Error during " ++ d ++ " with reason: " ++ r
