@@ -1,16 +1,15 @@
-<p align="center"><em>this repository is mirrored from my own <a href="https://dbarenholz.hopto.org/gitea/dan/calchs">gitea</a> instance</em></p>
-
 ## calchs
 
-A calculator language, implemented in Haskell. This project has three main reasons for existing.
+A calculator language, implemented in Haskell.
+This project has three main reasons for existing.
 
 1. I want a command line tool to quickly calculate things.
 2. I want a usecase for Haskell, because I'm learning the language.
 3. I'm interested in how parsers work.
 
-## Features
+### Features
 
-These are the current features that `calchs` supports. This list will inevitably change in the future.
+`calchs` supports the following features, subject to change:
 
 1. Supports numbers, differentiating between `Int`s and `Float`s.
 2. Supports unary operations:
@@ -27,30 +26,37 @@ These are the current features that `calchs` supports. This list will inevitably
 7. Supports certain options. See [the options](#options) for details.
 
 
-## Options
+### Options
 
-These are the options that `calchs` currently supports.
+`calchs` supports the following options, subject to change:
 
 * `--help` (or `-h`): shows help for the program
 * `--version`: shows the program version
 
-See also [the roadmap](#roadmap) for options that are parsed, but not yet implemented.
+See [the roadmap](#roadmap) for options that are parsed, but not yet implemented.
 
-## Tests
+### Building
 
-All tests for this project live in a single file in the `test` folder.
+`calchs` uses [`stack`](<https://docs.haskellstack.org/en/stable/>) for building.
+If you don't have it, install it with [ghcup](https://www.haskell.org/ghcup/).
 
-I have the following types of tests:
+To build `calchs`, clone it to a desired location on your machine.
+When you `cd calchs` into the directory, `stack` will install the required `GHC` version.
+When installing is done, run `stack build` to build the project.
+Install it with `stack install`.
 
-1. Property-based tests: the _roundtrip_ property (running the calculator on a representation of an AST returns the same AST).
-2. Table-based tests for happy and unhappy flow.
-3. Unit tests for `lex`, `parse`, and `eval` functions (based on happy table).
+### Testing
 
-See also [how to run the tests yourself](#testing).
+`calchs` uses [`hspec`](<https://hspec.github.io>) with [automatic spec discovery](<https://hspec.github.io/hspec-discover.html>).
 
-## Roadmap
+- To test the entire application: `stack test`.
+- To test a specific part of tests: `stack test --test-arguments '-m "PART"'`, where `PART` is a (sub)string of the tests you want to run.
 
-**Options**:
+### Roadmap
+
+This describes the current state of the project, and my plans for it.
+
+#### Options
 
 * `--joke`: enables the joke mode
 * `--imprecise`: enables an imprecise mode
@@ -63,7 +69,7 @@ See also [how to run the tests yourself](#testing).
 > Running `calchs --mode h --mode b --mode 10`, we silently ignore `--mode h` and `--mode b`, and simply set the mode to base 10 (which is default).
 
 
-**Features**:
+#### Features
 
 - [ ] Functions: `floor`, `ceil`, `min`, `max`, .... This will introduce a new Literal type, which then needs to be correctly lexed, parsed, and evaluated.
 	- [ ] Eventually: figure out how to auto-complete words (e.g. `floor`) when pressing `Tab`.
@@ -73,44 +79,13 @@ See also [how to run the tests yourself](#testing).
     - [ ] Between different units of length, mass, and others.
     - [ ] Between different number representations (e.g. binary, octal, hex).
 
-**Testing**:
+#### Testing
 
 - [ ] Test for underflows and overflows
 - [ ] Test for parsing options accurately
 - [ ] Test for _using_ options accurately
 
-## Building
-
-This project uses _Cabal_.
-If you don't have _Cabal_ or _GHC_ yet, I suggest installing them through [ghcup](https://www.haskell.org/ghcup/).
-
-Build the project using `cabal build`. Install it using `cabal install`: this puts a symlink to the binary in `~/.cabal/bin`.
-Alternatively, use `cabal list-bin` to find where cabal put the executable, and manually copy/symlink it.
-
-## Testing
-
-To test the project, you have a few options:
-
-1. Test the entire application: `cabal run test` (or `cabal run test -- "all"`)
-2. Test the application using implemented property tests: `cabal run test -- "property"`
-3. To replicate a property run using a (positive) seed, e.g. `111`: `cabal run test -- "seed-111"`
-4. Test the lexer: `cabal run test -- "lexer"`
-5. Test the parser: `cabal run test -- "parser"`
-6. Test the evaluator: `cabal run test -- "evaluator"`
-
-If you want to see more (or less) output, then replace `ShowFail` with any valid constructor of the `ShowMe` datatype (copied below) in `test/Main.hs`.
-Note that showing all `1000` property tests may be unhelpful; I recommend keeping that on `ShowFail`.
-
-```hs
--- | Sum type for showing results.
-data ShowMe
-  = ShowAll    -- show complete test output
-  | ShowFail   -- show all failures and errors <-- default
-  | ShowErr    -- show all errors
-  | ShowNone   -- show nothing, only the summary
-```
-
-## Contributing
+### Contributing
 
 Since this is a learning project, the only contributions I'll accept are _ideas_!
 Feel free to make an issue if you think something is interesting to add, either because you want to use it yourself, or because you believe it's a good learning experience.

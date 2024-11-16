@@ -1,0 +1,7 @@
+# DOCS https://docs.haskellstack.org/en/stable/yaml_configuration/
+
+# The latest LTS at the time of creation
+snapshot: lts-22.41
+
+packages:
+- .
